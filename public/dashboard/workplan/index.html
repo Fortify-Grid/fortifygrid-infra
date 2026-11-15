@@ -20,9 +20,8 @@
     .subtabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-top: 8px; overflow-x: auto; }
     .subtabs button { background: none; color: var(--ink); border: 0; border-bottom: 3px solid transparent; border-radius: 0; white-space: nowrap; }
     .subtabs button.on { border-color: var(--green); color: var(--green); font-weight: 600; }
-    .todo-row { display: flex; gap: 10px; align-items: center; padding: 8px 12px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 6px; cursor: pointer; }
-    .todo-row input { width: 20px; height: 20px; flex: none; } .todo-t { flex: 1; } .todo-row .dates { white-space: nowrap; color: var(--muted); }
-    .todo-row.late .dates { color: var(--coral); font-weight: 600; } #todo-list h3 { margin: 18px 0 8px; }
+    tr.grp td { background: var(--bg); padding: 10px 8px; font-size: 15px; cursor: grab; border-top: 2px solid var(--line); }
+    tr.grp.over td { outline: 2px dashed var(--green); } tr.grp button { padding: 0 8px; min-height: 0; }
     th.hd[draggable=true] { cursor: grab; } th.over { outline: 2px dashed var(--green); }
     tr.flt th { padding: 4px 6px; font-weight: normal; } tr.flt select, tr.flt input { width: 100%; min-width: 90px; font: inherit; padding: 3px 4px; border: 1px solid var(--line); border-radius: 4px; }
     th[data-sort].asc::after { content: ' ▲'; } th[data-sort].desc::after { content: ' ▼'; }
@@ -45,6 +44,7 @@
       .cards table, .cards tbody, .cards tr, .cards td { display: block; width: 100%; }
       .cards thead, .cards thead tr.flt { display: flex; flex-wrap: wrap; gap: 6px; border: 0; padding: 0; background: none; margin-bottom: 10px; }
       .cards thead tr.hd { display: none; }
+      .cards tr.grp { background: none; border: 0; padding: 0; margin: 14px 0 6px; } .cards tr.grp td { display: block; padding: 4px 0; border: 0; }
       .cards tr.flt th:first-child, .cards tr.hd th { display: none; }
       .cards tr.flt th { display: block; width: auto; flex: 1 1 140px; padding: 0; }
       .cards tr { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
@@ -71,7 +71,6 @@
     <section data-tab="workplan" hidden>
       <div class="subtabs" id="ws-tabs"></div>
       <div class="week"><b id="wk"></b><span id="wk-dates" class="muted"></span></div>
-      <div id="wp-main">
       <div class="bar">
         <div class="chips" id="filters">
           <button class="chip on" data-f="all">All weeks</button>
@@ -90,21 +89,6 @@
         <tbody id="rows"></tbody>
       </table></div>
       <p id="count" class="muted"></p>
-      </div>
-      <div id="todo-pane" hidden>
-      <div class="bar">
-        <div class="chips" id="todo-f">
-          <button class="chip" data-r="today">Today</button>
-          <button class="chip" data-r="week">This week</button>
-          <button class="chip" data-r="next7">Next 7 days</button>
-          <button class="chip" data-r="next30">Next 30 days</button>
-          <button class="chip" data-r="overdue">Overdue</button>
-        </div>
-        <label class="muted"><input type="checkbox" id="todo-od" style="width:auto"> include overdue</label>
-      </div>
-      <div id="todo-list"></div>
-      <p class="muted">Tick a task to mark it complete. Open tasks with a due date, grouped by workstream.</p>
-      </div>
     </section>
 
     <section data-tab="pricing" hidden><div class="soon"><h2>System Pricing</h2><p class="muted">Coming soon. This tab is under construction.</p></div></section>
@@ -217,10 +201,11 @@
     };
     const DEFAULT = Object.keys(COLS);
     let order = DEFAULT, flt = {}, picked = new Set(), shown = [], wss = [], ws = 0;
-    const inWs = () => tasks.filter((t) => t.workstream_id === ws); /* ws -1 = To do sub-tab: no tasks of its own */
+    const inWs = () => (ws === -1 ? tasks.filter((t) => t.status !== 'complete') : tasks.filter((t) => t.workstream_id === ws)); /* ws -1 = To do: open tasks of every workstream */
     try { const o = JSON.parse(localStorage.getItem('wp-cols')); if (Array.isArray(o) && o.length === DEFAULT.length && DEFAULT.every((k) => o.includes(k))) order = o; } catch {}
+    const WINDOWS = ['all', 'today', 'current', 'next2', 'overdue'];
     const view = lsGet('wp-view');   /* saved per browser: chip filter + sort */
-    if (view && COLS[view.sort?.key] && ['all', 'today', 'current', 'next2', 'overdue'].includes(view.filter)) {
+    if (view && COLS[view.sort?.key] && WINDOWS.includes(view.filter)) {
       filter = view.filter; sort = { key: view.sort.key, dir: view.sort.dir < 0 ? -1 : 1 };
       document.querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', c.dataset.f === filter));
     }
@@ -239,18 +224,35 @@
             `<option value="${v === '' ? NONE : esc(v)}"${(flt[k] || '') === (v === '' ? NONE : v) ? ' selected' : ''}>${v === '' ? '(none)' : esc(c.show ? c.show(v) : v)}</option>`).join('')}</select></th>`;
         }).join('')}<th></th></tr>`;
     }
-    function render() {
+    /* Time windows shared by the workstream sub-tabs and To do (same chips, same rules). */
+    function windowKeep(f) {
       const from = ymd(wk0), to = ymd(addDays(wk0, 6)), n1 = ymd(addDays(wk0, 7)), n2 = ymd(addDays(wk0, 20));
-      const keep = { all: () => true, today: (t) => t.status !== 'complete' && (t.due_date === today || t.due_date === ymd(addDays(new Date(), 1))), current: (t) => overlaps(t, from, to), next2: (t) => overlaps(t, n1, n2), overdue: late }[filter];
+      return { all: () => true, today: (t) => t.status !== 'complete' && (t.due_date === today || t.due_date === ymd(addDays(new Date(), 1))),
+        current: (t) => overlaps(t, from, to), next2: (t) => overlaps(t, n1, n2), overdue: late }[f];
+    }
+    /* group order for To do: own saved order, else the sub-tab order */
+    const grpOrder = () => { const o = lsGet('wp-grporder') || [], pos = (w) => (o.includes(w.id) ? o.indexOf(w.id) : 999 + wsSorted().indexOf(w)); return [...wss].sort((a, b) => pos(a) - pos(b)); };
+    function render() {
+      const keep = windowKeep(filter);
       const colOk = (t) => Object.entries(flt).every(([k, v]) => !v || (COLS[k].text ? t.task.toLowerCase().includes(v.toLowerCase()) : (COLS[k].f(t) || NONE) === v));
       const sv = COLS[sort.key].sort;
       const list = inWs().filter((t) => keep(t) && colOk(t))
         .sort((a, b) => { const x = sv(a), y = sv(b); return (x < y ? -1 : x > y ? 1 : a.id - b.id) * sort.dir; });
-      $('rows').innerHTML = list.map((t) => `<tr class="st-${t.status}${late(t) ? ' late' : ''}"><td><input type="checkbox" data-sel="${t.id}" aria-label="Select task #${t.id}"${picked.has(t.id) ? ' checked' : ''}></td>${order.map((k) => {
+      const row = (t) => `<tr class="st-${t.status}${late(t) ? ' late' : ''}"><td><input type="checkbox" data-sel="${t.id}" aria-label="Select task #${t.id}"${picked.has(t.id) ? ' checked' : ''}></td>${order.map((k) => {
         const c = COLS[k]; return `<td data-label="${c.label}" class="${c.cls || ''}">${c.cell(t)}</td>`; }).join('')}
-        <td><button class="ghost" data-edit="${t.id}">Edit</button></td></tr>`).join('')
-        || `<tr><td colspan="${order.length + 2}" class="muted">No tasks in this view.</td></tr>`;
-      shown = list.map((t) => t.id);
+        <td><button class="ghost" data-edit="${t.id}">Edit</button></td></tr>`;
+      let vis = list;
+      if (ws !== -1) $('rows').innerHTML = list.map(row).join('') || `<tr><td colspan="${order.length + 2}" class="muted">No tasks in this view.</td></tr>`;
+      else {
+        /* To do: same table, grouped by workstream; groups can be dragged up/down and folded (saved per browser) */
+        const folded = new Set(lsGet('wp-fold') || []);
+        const groups = grpOrder().map((w) => ({ w, rows: list.filter((t) => t.workstream_id === w.id) })).filter((g) => g.rows.length);
+        vis = groups.filter((g) => !folded.has(g.w.id)).flatMap((g) => g.rows);
+        $('rows').innerHTML = groups.map((g) => `<tr class="grp" draggable="true" data-g="${g.w.id}" title="Drag to reorder"><td colspan="${order.length + 2}">
+          <button class="ghost" data-fold="${g.w.id}" aria-label="Collapse or expand">${folded.has(g.w.id) ? '▸' : '▾'}</button> <b>${esc(g.w.name)}</b> <span class="muted">${g.rows.length}</span></td></tr>${folded.has(g.w.id) ? '' : g.rows.map(row).join('')}`).join('')
+          || `<tr><td colspan="${order.length + 2}" class="muted">Nothing in this window.</td></tr>`;
+      }
+      shown = vis.map((t) => t.id);
       $('sel').hidden = !picked.size; $('sel-n').textContent = picked.size;
       const all = $('all'); if (all) { all.checked = shown.length > 0 && shown.every((i) => picked.has(i)); all.indeterminate = !all.checked && shown.some((i) => picked.has(i)); }
       $('count').textContent = `${list.length} of ${inWs().length} tasks`;
@@ -261,14 +263,14 @@
     const wsOpts = (none) => (none ? '<option value="">— no change —</option>' : '') + wss.map((w) => `<option value="${w.id}">${esc(w.name)}</option>`).join('');
     /* sub-tab order: admin order is the default; dragging saves your own order in this browser */
     const sortTabs = (list) => { const o = lsGet('wp-wsorder') || [], pos = (w) => (o.includes(w.id) ? o.indexOf(w.id) : 999 + w.sort); return [...list].sort((a, b) => pos(a) - pos(b)); };
-    const wsSorted = () => sortTabs(wss);                                    /* workstreams only */
+    const wsSorted = () => sortTabs(wss);
+    const defWs = () => (ws > 0 ? ws : wsSorted()[0]?.id);                                    /* workstreams only */
     const subTabs = () => sortTabs([...wss, { id: -1, name: 'To do', sort: 9999 }]); /* + the To do sub-tab */
-    const showPane = () => { const t = ws === -1; $('wp-main').hidden = t; $('todo-pane').hidden = !t; };
     const drawWsTabs = () => { $('ws-tabs').innerHTML = subTabs().map((w) => `<button class="${w.id === ws ? 'on' : ''}" data-ws="${w.id}" draggable="true" title="Drag to reorder">${esc(w.name)}</button>`).join(''); };
     async function loadWs() {
       wss = await api('workplan/workstreams');
       if (ws !== -1 && !wss.some((w) => w.id === ws)) { const s = Number(lsGet('wp-ws')); ws = s === -1 || wss.some((w) => w.id === s) ? s : wsSorted()[0]?.id || 0; }
-      drawWsTabs(); showPane();
+      drawWsTabs();
       form.workstream_id.innerHTML = wsOpts(false); $('bulk-form').workstream_id.innerHTML = wsOpts(true);
     }
     let wdrag = null;
@@ -287,13 +289,13 @@
       ws = id; lsSet('wp-ws', id);
       picked.clear(); flt = {};
       document.querySelectorAll('#ws-tabs button').forEach((b) => b.classList.toggle('on', Number(b.dataset.ws) === ws));
-      showPane(); if (ws === -1) renderTodo(); else { buildHead(); render(); }
+      buildHead(); render();
     });
     async function loadTasks() {
       tasks = await api('workplan/tasks');
       for (const k of Object.keys(flt)) if (flt[k] && !COLS[k].text && !optVals(k).some((v) => (v || NONE) === flt[k])) delete flt[k];
       picked = new Set([...picked].filter(byId));
-      buildHead(); render(); renderTodo();
+      buildHead(); render();
     }
     async function save(t) {
       try { await api('workplan/tasks' + (t.id ? `/${t.id}` : ''), { method: 'POST', body: t }); await loadTasks(); showMsg(msg, ''); }
@@ -313,13 +315,26 @@
     });
     head.addEventListener('input', (e) => { const k = e.target.dataset.flt; if (k) { flt[k] = e.target.value; render(); } });
     $('clear').addEventListener('click', () => { flt = {}; buildHead(); render(); });
+    $('rows').addEventListener('click', (e) => {
+      const id = Number(e.target.closest('[data-fold]')?.dataset.fold); if (!id) return;
+      const f = new Set(lsGet('wp-fold') || []); f.has(id) ? f.delete(id) : f.add(id); lsSet('wp-fold', [...f]); render();
+    });
+    let gdrag = null;
+    $('rows').addEventListener('dragstart', (e) => { gdrag = Number(e.target.closest?.('tr.grp')?.dataset.g) || null; });
+    $('rows').addEventListener('dragover', (e) => { const g = e.target.closest('tr.grp'); if (gdrag && g) { e.preventDefault(); $('rows').querySelectorAll('.over').forEach((x) => x.classList.remove('over')); g.classList.add('over'); } });
+    $('rows').addEventListener('drop', (e) => {
+      e.preventDefault(); const to = Number(e.target.closest('tr.grp')?.dataset.g);
+      if (gdrag && to && to !== gdrag) { const ids = grpOrder().map((w) => w.id), i = ids.indexOf(to); ids.splice(ids.indexOf(gdrag), 1); ids.splice(i, 0, gdrag); lsSet('wp-grporder', ids); render(); }
+      gdrag = null;
+    });
+    $('rows').addEventListener('dragend', () => { gdrag = null; $('rows').querySelectorAll('.over').forEach((x) => x.classList.remove('over')); });
     /* select rows, edit shared fields on all of them (task text and dependencies stay per task) */
     head.addEventListener('change', (e) => { if (e.target.id !== 'all') return; shown.forEach((i) => (e.target.checked ? picked.add(i) : picked.delete(i))); render(); });
     $('rows').addEventListener('change', (e) => { const i = Number(e.target.dataset.sel); if (!i) return; e.target.checked ? picked.add(i) : picked.delete(i); render(); });
     $('unsel').addEventListener('click', () => { picked.clear(); render(); });
     const bf = $('bulk-form');
     bf.status.innerHTML = '<option value="">— no change —</option>' + Object.entries(STATUS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
-    $('bulk').addEventListener('click', () => { fillOptions(ws, null); bf.reset(); $('bulk-title').textContent = `Edit ${picked.size} selected task${picked.size > 1 ? 's' : ''}`; $('bulk-dlg').showModal(); });
+    $('bulk').addEventListener('click', () => { fillOptions(defWs(), null); bf.reset(); $('bulk-title').textContent = `Edit ${picked.size} selected task${picked.size > 1 ? 's' : ''}`; $('bulk-dlg').showModal(); });
     $('bulk-cancel').addEventListener('click', () => $('bulk-dlg').close());
     bf.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -364,8 +379,8 @@
     function openEdit(t) {
       editing = t;
       $('edit-title').textContent = t ? `Edit task #${t.id}` : 'Add task';
-      fillOptions(t?.workstream_id || ws, t);
-      form.workstream_id.value = t?.workstream_id || ws;
+      fillOptions(t?.workstream_id || defWs(), t);
+      form.workstream_id.value = t?.workstream_id || defWs();
       for (const k of ['project', 'category', 'task', 'depends_note', 'start_date', 'due_date']) form[k].value = t?.[k] || '';
       form.status.value = t?.status || 'not_started';
       form.depends_on.value = t?.depends_on || '';
@@ -437,28 +452,6 @@
       try { await api('workplan/access', { method: 'POST', body: { email: u.email, tabs } }); showMsg(msg, `Saved ${u.email}.`, 'ok'); await loadAccess(); }
       catch (err) { showMsg(msg, err.message, 'err'); e.target.checked = !e.target.checked; }
     });
-
-    /* To do: a sub-tab (id -1) next to the workstreams: open tasks due in a time window, grouped by workstream. */
-    const todo = { r: 'week', od: true, ...(lsGet('wp-todo') || {}) };
-    if (!['today', 'week', 'next7', 'next30', 'overdue'].includes(todo.r)) todo.r = 'week';
-    $('todo-od').checked = !!todo.od;
-    function renderTodo() {
-      const to = { today: today, week: ymd(addDays(wk0, 6)), next7: ymd(addDays(new Date(), 7)), next30: ymd(addDays(new Date(), 30)) }[todo.r];
-      const keep = (t) => t.status !== 'complete' && t.due_date && (todo.r === 'overdue' ? t.due_date < today
-        : (t.due_date >= today && t.due_date <= to) || (todo.od && t.due_date < today));
-      const items = tasks.filter(keep);
-      document.querySelectorAll('#todo-f .chip').forEach((c) => c.classList.toggle('on', c.dataset.r === todo.r));
-      $('todo-od').parentElement.hidden = todo.r === 'overdue';
-      $('todo-list').innerHTML = wsSorted().map((w) => {
-        const l = items.filter((t) => t.workstream_id === w.id).sort((a, b) => (a.due_date < b.due_date ? -1 : a.due_date > b.due_date ? 1 : a.id - b.id));
-        return l.length ? `<h3>${esc(w.name)} <span class="muted">${l.length}</span></h3>${l.map((t) => `<label class="todo-row${t.due_date < today ? ' late' : ''}">
-          <input type="checkbox" data-done="${t.id}" aria-label="Mark complete"><span class="todo-t">${esc(t.task)} ${t.project ? tag(t.project) : ''} ${t.category ? tag(t.category) : ''}</span>
-          <span class="dates">${t.due_date === today ? 'Today' : fmt(t.due_date)}</span></label>`).join('')}` : '';
-      }).join('') || '<p class="muted">Nothing due in this window.</p>';
-    }
-    $('todo-f').addEventListener('click', (e) => { const r = e.target.dataset.r; if (!r) return; todo.r = r; lsSet('wp-todo', todo); renderTodo(); });
-    $('todo-od').addEventListener('change', (e) => { todo.od = e.target.checked; lsSet('wp-todo', todo); renderTodo(); });
-    $('todo-list').addEventListener('change', (e) => { const id = Number(e.target.dataset.done); if (id) save({ ...byId(id), status: 'complete' }); });
 
     /* start */
     try {
