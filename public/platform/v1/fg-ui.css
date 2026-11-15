@@ -3,43 +3,55 @@
    (apps under app.fortifygrid.com can use /platform/v1/fg-ui.css). v1 changes stay backward compatible.
    Every class starts with fg- so it never clashes with an app's own CSS. Apps may override the tokens. */
 :root {
-  --fg-green: #2E6F40; --fg-coral: #EF4B3F; --fg-ink: #1E1E1E; --fg-muted: rgba(61, 58, 52, .7);
-  --fg-bg: #F7F7F5; --fg-card: #fff; --fg-line: #E8E6E3; --fg-hover: #F4F4F2; --fg-tint: #EAF2EC;
-  --fg-side: #0B3D20; --fg-side-ink: rgba(255, 255, 255, .72); --fg-side-on: #2E6F40;
-  --fg-done: rgba(46, 125, 50, .07); --fg-late: rgba(211, 63, 63, .07);
+  /* Palette: Mint Green, Ice Blue, Warm Apricot. Fills carry dark text (--fg-accent-ink); --fg-green is the dark accent
+     for text, borders and ticks (kept under its old name so apps that use it keep working). */
+  --fg-mint: #98FF98; --fg-ice: #BAE6FD; --fg-apricot: #FDBA74;
+  --fg-accent: var(--fg-mint); --fg-accent-ink: #1E1E1E;
+  --fg-green: #0C4A6E; --fg-coral: #EF4B3F; --fg-ink: #1E1E1E; --fg-muted: rgba(61, 58, 52, .7);
+  --fg-bg: #F7F7F5; --fg-card: #fff; --fg-line: #E8E6E3; --fg-hover: #F4F4F2; --fg-tint: #FFEDD5;
+  --fg-side: var(--fg-ice); --fg-side-ink: rgba(30, 30, 30, .78); --fg-side-on: var(--fg-mint);
+  --fg-done: rgba(152, 255, 152, .25); --fg-late: rgba(211, 63, 63, .07);
   --fg-radius: 6px; --fg-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 /* Dark mode is opt-in: <html data-fg-theme="auto"> follows the device; pages without it stay light. */
 @media (prefers-color-scheme: dark) {
   :root[data-fg-theme="auto"] {
     --fg-ink: #f0efec; --fg-muted: #a9a89f; --fg-bg: #222321; --fg-card: #1a1a19; --fg-line: #34352f; --fg-hover: #24302a;
-    --fg-tint: #1f3a28; --fg-green: #4fa36a; --fg-done: rgba(79, 163, 106, .12); --fg-late: rgba(239, 75, 63, .14);
+    --fg-tint: #4a3520; --fg-green: #7DD3FC; --fg-done: rgba(152, 255, 152, .12); --fg-late: rgba(239, 75, 63, .14);
   }
 }
 
 /* ---------- shell: Slack-style sidebar (brand · Apps · sections · channels · you) + work area ---------- */
-.fg-app { display: grid; grid-template-columns: 248px 1fr; min-height: 100vh; min-height: 100dvh; font-family: var(--fg-font); color: var(--fg-ink); background: var(--fg-card); }
+.fg-app { display: grid; grid-template-columns: 248px 1fr; transition: grid-template-columns .2s; min-height: 100vh; min-height: 100dvh; font-family: var(--fg-font); color: var(--fg-ink); background: var(--fg-card); }
 .fg-side { background: var(--fg-side); color: var(--fg-side-ink); display: flex; flex-direction: column; gap: 2px; position: sticky; top: 0;
   height: 100vh; height: 100dvh; overflow-y: auto; padding: calc(14px + env(safe-area-inset-top)) 10px 14px; }
-.fg-brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 10px; color: #fff; font-weight: 700; font-size: 17px; text-decoration: none; }
+.fg-brand { display: flex; align-items: center; gap: 10px; padding: 4px 36px 10px 8px; color: var(--fg-ink); font-weight: 700; font-size: 17px; text-decoration: none; }
 .fg-brand img { width: 30px; height: 30px; border-radius: 8px; }
-.fg-side-h { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: rgba(255, 255, 255, .5); padding: 16px 10px 6px; }
+.fg-side-h { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: rgba(30, 30, 30, .5); padding: 16px 10px 6px; }
 .fg-nav { display: flex; flex-direction: column; gap: 2px; }
 .fg-nav-item { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: none; border: 0; border-radius: var(--fg-radius);
   color: var(--fg-side-ink); padding: 6px 10px; font: inherit; font-size: 15px; min-height: 32px; text-decoration: none; cursor: pointer; }
-.fg-nav-item:hover { background: rgba(255, 255, 255, .08); color: #fff; }
-.fg-nav-item.on { background: var(--fg-side-on); color: #fff; font-weight: 600; }
-.fg-nav-item.locked { color: rgba(255, 255, 255, .3); cursor: not-allowed; background: none; }
+.fg-nav-item:hover { background: rgba(253, 186, 116, .45); color: var(--fg-ink); }
+.fg-nav-item.on { background: var(--fg-side-on); color: var(--fg-accent-ink); font-weight: 600; }
+.fg-nav-item.locked { color: rgba(30, 30, 30, .32); cursor: not-allowed; background: none; }
 .fg-nav.channels .fg-nav-item::before { content: '#'; opacity: .6; font-weight: 400; }
 .fg-nav-item .fg-badge { margin-left: auto; }
-.fg-side-foot { margin-top: auto; padding: 14px 10px 0; font-size: 13px; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid rgba(255, 255, 255, .1); }
+.fg-side-foot { margin-top: auto; padding: 14px 10px 0; font-size: 13px; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid rgba(30, 30, 30, .12); }
 .fg-side-foot a { color: var(--fg-side-ink); text-decoration: none; }
-.fg-side-foot a:hover { color: #fff; }
-.fg-who { color: rgba(255, 255, 255, .5); overflow-wrap: anywhere; }
+.fg-side-foot a:hover { color: var(--fg-ink); text-decoration: underline; }
+.fg-who { color: rgba(30, 30, 30, .55); overflow-wrap: anywhere; }
 .fg-apps { position: relative; padding: 0 0 4px; }
-.fg-apps-btn { width: 100%; text-align: left; background: rgba(255, 255, 255, .06); border: 0; border-radius: var(--fg-radius); color: var(--fg-side-ink);
+.fg-apps-btn { width: 100%; text-align: left; background: rgba(255, 255, 255, .55); border: 0; border-radius: var(--fg-radius); color: var(--fg-side-ink);
   font: inherit; font-size: 14px; padding: 6px 10px; cursor: pointer; }
-.fg-apps-btn:hover, .fg-apps-btn[aria-expanded="true"] { background: rgba(255, 255, 255, .12); color: #fff; }
+.fg-apps-btn:hover, .fg-apps-btn[aria-expanded="true"] { background: var(--fg-apricot); color: var(--fg-ink); }
+/* Hide / show the sidebar (every app; remembered in this browser for all apps). Hidden = a slim rail with ☰. */
+.fg-side-toggle { position: absolute; top: calc(12px + env(safe-area-inset-top)); right: 8px; z-index: 2; width: 30px; height: 30px; border: 0; padding: 0;
+  border-radius: var(--fg-radius); background: transparent; color: var(--fg-side-ink); font: inherit; font-size: 16px; line-height: 30px; cursor: pointer; }
+.fg-side-toggle:hover { background: var(--fg-apricot); color: var(--fg-ink); }
+.fg-app.fg-side-hidden { grid-template-columns: 46px 1fr; }
+.fg-side.hidden { padding: calc(10px + env(safe-area-inset-top)) 8px 10px; overflow: visible; }
+.fg-side.hidden > :not(.fg-side-toggle) { display: none; }
+.fg-side.hidden .fg-side-toggle { position: static; }
 .fg-apps-menu { position: absolute; left: 0; right: 0; top: calc(100% + 2px); z-index: 50; background: var(--fg-card); border: 1px solid var(--fg-line);
   border-radius: 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, .18); padding: 4px 0; }
 .fg-apps-menu a { display: block; padding: 7px 12px; font-size: 14px; color: var(--fg-ink); text-decoration: none; }
@@ -55,9 +67,10 @@
 .fg-muted { color: var(--fg-muted); font-size: 14px; }
 .fg-pill { font-size: 13px; color: var(--fg-muted); background: var(--fg-hover); border-radius: 12px; padding: 3px 10px; }
 .fg-badge { display: inline-block; font-size: 12px; background: var(--fg-tint); color: var(--fg-green); border-radius: 10px; padding: 2px 8px; }
-.fg-btn { font: inherit; font-size: 14px; font-weight: 500; padding: 6px 12px; border-radius: var(--fg-radius); border: 1px solid var(--fg-green);
-  background: var(--fg-green); color: #fff; cursor: pointer; }
-.fg-btn.ghost { background: transparent; color: var(--fg-green); }
+.fg-btn { font: inherit; font-size: 14px; font-weight: 500; padding: 6px 12px; border-radius: var(--fg-radius); border: 1px solid #5FD35F;
+  background: var(--fg-accent); color: var(--fg-accent-ink); cursor: pointer; }
+.fg-btn:hover { filter: brightness(.96); }
+.fg-btn.ghost { background: transparent; color: var(--fg-green); border-color: var(--fg-green); }
 .fg-btn.danger { border-color: var(--fg-coral); background: transparent; color: var(--fg-coral); }
 .fg-btn.small { padding: 3px 9px; font-size: 13px; }
 .fg-btn:disabled { opacity: .5; cursor: default; }
@@ -74,7 +87,7 @@
 .fg-chip { background: var(--fg-card); color: var(--fg-ink); border: 1px solid var(--fg-line); white-space: nowrap; border-radius: 16px; padding: 5px 12px;
   font: inherit; font-size: 13px; cursor: pointer; }
 .fg-chip:hover { background: var(--fg-hover); }
-.fg-chip.on { background: var(--fg-ink); color: var(--fg-card); border-color: var(--fg-ink); }
+.fg-chip.on { background: var(--fg-apricot); color: var(--fg-accent-ink); border-color: #F59E0B; }
 .fg-chip .fg-n { margin-left: 4px; opacity: .6; }
 .fg-count { font-size: 13px; color: var(--fg-muted); }
 .fg-link { background: none; border: 0; padding: 0; font: inherit; font-size: 13px; color: var(--fg-green); cursor: pointer; text-decoration: underline; }
@@ -92,9 +105,9 @@
 .fg-table th[data-sort] { cursor: pointer; user-select: none; white-space: nowrap; }
 .fg-table th[draggable="true"] { cursor: grab; }
 .fg-table th.asc::after { content: ' ▲'; } .fg-table th.desc::after { content: ' ▼'; }
-.fg-table .over { outline: 2px dashed var(--fg-green); outline-offset: -2px; }
+.fg-table .over { outline: 2px dashed #F59E0B; outline-offset: -2px; }
 .fg-table .fg-resize { position: absolute; top: 0; bottom: 0; right: -3px; width: 6px; cursor: col-resize; z-index: 2; }
-.fg-table .fg-resize:hover { background: rgba(46, 111, 64, .35); }
+.fg-table .fg-resize:hover { background: rgba(253, 186, 116, .7); }
 .fg-table tr.fg-flt th { padding: 4px 6px; font-weight: normal; text-transform: none; letter-spacing: 0; }
 .fg-table tr.fg-flt select, .fg-table tr.fg-flt input { width: 100%; min-width: 90px; font: inherit; font-size: 13px; padding: 4px 6px; border: 1px solid var(--fg-line); border-radius: var(--fg-radius); background: var(--fg-card); color: var(--fg-ink); }
 .fg-table tbody tr:hover > td { background: var(--fg-hover); }
@@ -118,14 +131,14 @@
 .fg-section.folded .fg-chev { transform: rotate(-90deg); }
 .fg-section > .fg-section-body { padding: 0 14px 14px; }
 .fg-section.folded > .fg-section-body { display: none; }
-.fg-section.over { outline: 2px dashed var(--fg-green); outline-offset: 2px; }
+.fg-section.over { outline: 2px dashed #F59E0B; outline-offset: 2px; }
 .dragging { opacity: .5; }
 
 /* ---------- ⓘ help ---------- */
 .fg-info { position: relative; display: inline-block; vertical-align: middle; text-transform: none; letter-spacing: normal; font-weight: normal; }
 .fg-info > button { margin-left: 4px; width: 16px; height: 16px; border-radius: 50%; border: 0; padding: 0; font-size: 10px; font-weight: 700; line-height: 16px;
   background: var(--fg-line); color: var(--fg-ink); cursor: pointer; }
-.fg-info.open > button { background: var(--fg-green); color: #fff; }
+.fg-info.open > button { background: var(--fg-apricot); color: var(--fg-ink); }
 .fg-info > span { position: absolute; top: 22px; left: 0; z-index: 30; width: 260px; background: #1E293B; color: #fff; font-size: 12px; line-height: 1.4;
   padding: 8px 10px; border-radius: var(--fg-radius); box-shadow: 0 10px 20px rgba(0, 0, 0, .15); white-space: normal; text-align: left; }
 .fg-info.right > span { left: auto; right: 0; }
@@ -140,6 +153,8 @@
   .fg-side { position: sticky; top: 0; z-index: 10; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px;
     padding: calc(8px + env(safe-area-inset-top)) 12px 8px; overflow: visible; }
   .fg-brand { padding: 0 6px 0 0; font-size: 16px; } .fg-brand img { width: 26px; height: 26px; }
+  .fg-app.fg-side-hidden { display: block; }
+  .fg-side-toggle { position: static; order: -1; } .fg-side.hidden { padding: calc(4px + env(safe-area-inset-top)) 8px 4px; }
   .fg-side-h, .fg-side-foot { display: none; }
   .fg-apps { order: 2; padding: 0; } .fg-apps-btn { width: auto; } .fg-apps-menu { right: auto; min-width: 220px; }
   .fg-nav { flex-direction: row; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }

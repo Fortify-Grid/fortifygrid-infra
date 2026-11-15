@@ -7,7 +7,7 @@
   "scope": "/workplan/",
   "display": "standalone",
   "background_color": "#F7F7F5",
-  "theme_color": "#0B3D20",
+  "theme_color": "#BAE6FD",
   "icons": [
     { "src": "/assets/planner-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/assets/planner-512.png", "sizes": "512x512", "type": "image/png" },

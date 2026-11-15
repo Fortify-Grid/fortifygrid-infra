@@ -3,7 +3,7 @@
    v1 changes stay backward compatible; a breaking change becomes v2. Demo: /platform/v1/demo.html */
 (() => {
   const FG = (window.FG = window.FG || {});
-  FG.version = '1.0.0';
+  FG.version = '1.1.0';
 
   // Every app, for the Apps menu. Home lists only the apps you can open; this list is the same for everyone.
   FG.HOME = { name: '⌂ Home: all apps', url: 'https://app.fortifygrid.com/' };
@@ -77,10 +77,14 @@
   /* ---------- shell: sidebar with brand · Apps · sections · channels · you ----------
      FG.shell(asideEl, { app, name, icon, home, sections: [{id, label, href?, locked?}], current, onSection(id),
        channelsTitle, channels: [{id, label, badge?}], channel, onChannel(id), user, signOut })
-     → { update(partialOpts) }. Sections and channels can be dragged; order saved per browser. */
+     → { update(partialOpts), toggle(show) }. Sections and channels can be dragged; order saved per browser.
+     « hides the sidebar to a slim ☰ rail (phone: a small bar); the choice is kept for every app in this browser. */
   FG.shell = (side, o) => {
     side.classList.add('fg-side');
     let menu = false;
+    // Hide / show: one setting for every app in this browser (not per app or person), so the choice follows you.
+    let hidden = FG.store.get('fg:sidebar:hidden', false);
+    const fold = () => { side.classList.toggle('hidden', hidden); side.closest('.fg-app')?.classList.toggle('fg-side-hidden', hidden); };
     const draw = () => {
       const secs = FG.orderBy(o.sections || [], FG.store.get(FG.key('nav:sections')), (s) => s.id);
       const chans = FG.orderBy(o.channels || [], FG.store.get(FG.key('nav:channels')), (c) => c.id);
@@ -90,6 +94,7 @@
           ? `<a class="fg-nav-item${on ? ' on' : ''}" data-id="${esc(x.id)}" data-kind="${kind}" href="${esc(x.href)}" draggable="true"${on ? ' aria-current="page"' : ''}>${esc(x.label)}${x.badge ? `<span class="fg-badge">${esc(x.badge)}</span>` : ''}</a>`
           : `<button type="button" class="fg-nav-item${on ? ' on' : ''}" data-id="${esc(x.id)}" data-kind="${kind}" draggable="true"${on ? ' aria-current="page"' : ''}>${esc(x.label)}${x.badge ? `<span class="fg-badge">${esc(x.badge)}</span>` : ''}</button>`);
       side.innerHTML = `
+        <button type="button" class="fg-side-toggle" aria-expanded="${!hidden}" title="${hidden ? 'Show the sidebar' : 'Hide the sidebar'}" aria-label="${hidden ? 'Show the sidebar' : 'Hide the sidebar'}">${hidden ? '☰' : '«'}</button>
         <a class="fg-brand" href="${esc(o.home || '/')}" title="${esc(o.name)}: home">${o.icon ? `<img src="${esc(o.icon)}" alt="">` : ''}${esc(o.name)}</a>
         <div class="fg-apps"><button type="button" class="fg-apps-btn" aria-haspopup="menu" aria-expanded="${menu}">Apps ▾</button>
           ${menu ? `<div class="fg-apps-menu" role="menu"><a role="menuitem" href="${FG.HOME.url}">${esc(FG.HOME.name)}</a><hr>${FG.APPS.map((a) =>
@@ -99,6 +104,11 @@
         <div class="fg-side-foot">${o.user ? `<span class="fg-who">${esc(o.user)}</span>` : ''}<a href="${FG.HOME.url}">← All apps</a><a href="${esc(o.signOut || '/cdn-cgi/access/logout')}">Sign out</a></div>`;
     };
     side.addEventListener('click', (e) => {
+      if (e.target.closest('.fg-side-toggle')) {
+        hidden = !hidden; menu = false; FG.store.set('fg:sidebar:hidden', hidden); fold(); draw();
+        dispatchEvent(new Event('resize')); // maps and charts fit the new width
+        return;
+      }
       if (e.target.closest('.fg-apps-btn')) { menu = !menu; draw(); return; }
       const it = e.target.closest('[data-kind]'); if (!it || it.tagName === 'A') return;
       const id = (o.channels || []).concat(o.sections || []).find((x) => String(x.id) === it.dataset.id)?.id;
@@ -110,8 +120,8 @@
     const reorder = (kind) => (order) => { FG.store.set(FG.key(`nav:${kind}`), order); draw(); };
     FG.sortable(side, '.sections > [data-id]', () => [...side.querySelectorAll('.sections > [data-id]')].map((x) => x.dataset.id), reorder('sections'));
     FG.sortable(side, '.channels > [data-id]', () => [...side.querySelectorAll('.channels > [data-id]')].map((x) => x.dataset.id), reorder('channels'));
-    draw();
-    return { update(p) { Object.assign(o, p); draw(); } };
+    fold(); draw();
+    return { update(p) { Object.assign(o, p); draw(); }, toggle(show = hidden) { if (show === hidden) side.querySelector('.fg-side-toggle').click(); } };
   };
 
   /* ---------- page filters: chips, search, toggles, selects; kept in the URL and per browser ----------
