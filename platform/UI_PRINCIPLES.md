@@ -70,4 +70,4 @@ Planner's look is the standard (it came first). Class names all start with `fg-`
 
 ## 8. Changing the kit
 - Edit `public/platform/v1/` in fortifygrid-infra, check the demo page, run `npm run check`, update this file.
-- v1 stays backward compatible (apps load it live, cached 5 minutes). A breaking change goes in `v2/`; apps move one by one.
+- v1 stays backward compatible (apps load it live; browsers revalidate it on every load). A breaking change goes in `v2/`; apps move one by one.

@@ -264,7 +264,13 @@
       picked,
       shown: () => [...shownIds],
       render,
-      setRows(next) { rows = next || []; const keep = new Set(rows.map((r) => String(id(r)))); [...picked].forEach((i) => { if (!keep.has(i)) picked.delete(i); }); full(); },
+      setRows(next) {
+        rows = next || []; const keep = new Set(rows.map((r) => String(id(r)))); [...picked].forEach((i) => { if (!keep.has(i)) picked.delete(i); });
+        // a dropdown filter whose value no row has any more would hide everything: drop it
+        for (const c of o.cols) if (c.f && st.flt[c.key] && !rows.some((r) => { const x = c.f(r); return (x === '' || x == null ? NONE : String(x)) === st.flt[c.key]; })) delete st.flt[c.key];
+        full();
+      },
+      setCols(next) { o.cols = next; full(); }, // columns that depend on data (e.g. one per app)
       reset() { st.flt = {}; save(); full(); }, // clears the column filters
       state: st,
     };

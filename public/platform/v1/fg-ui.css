@@ -39,11 +39,11 @@
 .fg-apps-menu a:hover { background: var(--fg-hover); }
 .fg-apps-menu a.on { font-weight: 600; color: var(--fg-green); }
 .fg-apps-menu hr { border: 0; border-top: 1px solid var(--fg-line); margin: 4px 0; }
-.fg-work { min-width: 0; padding: 0 28px 40px; }
+.fg-work { min-width: 0; max-width: none; margin: 0; padding: 0 28px 40px; }
 
 /* ---------- page top, bars, buttons, messages ---------- */
 .fg-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 18px 0 12px; border-bottom: 1px solid var(--fg-line); }
-.fg-top h1 { font-size: 20px; font-weight: 700; margin: 0; }
+.fg-top h1 { font-family: inherit; font-size: 20px; font-weight: 700; margin: 0; }
 .fg-grow { flex: 1; }
 .fg-muted { color: var(--fg-muted); font-size: 14px; }
 .fg-pill { font-size: 13px; color: var(--fg-muted); background: var(--fg-hover); border-radius: 12px; padding: 3px 10px; }

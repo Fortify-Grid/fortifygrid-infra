@@ -2,52 +2,57 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>FortifyGrid Dashboard</title>
   <link rel="icon" type="image/png" href="/assets/favicon.png">
-  <link href="https://fonts.googleapis.com/css2?family=Old+Standard+TT&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/portal.css">
+  <link rel="stylesheet" href="/platform/v1/fg-ui.css">
+  <script src="/platform/v1/fg-ui.js"></script>
+  <style>
+    .fg-section-body .tiles { margin-top: 0; }
+    .fg-section-head .fg-muted { font-weight: 400; }
+  </style>
 </head>
 <body>
-  <header>
-    <a href="https://fortifygrid.com/"><img src="/assets/fortify-logo.svg" alt="FortifyGrid"></a>
-    <nav>
-      <span id="who" class="muted"></span>
-      <a id="admin-link" href="/admin/" hidden>Manage users</a>
-      <a href="/cdn-cgi/access/logout">Sign out</a>
-    </nav>
-  </header>
-  <main>
-    <h1>Your apps</h1>
-    <p class="muted">Apps you have been given access to. Ask an admin if one is missing.</p>
-    <div id="notice" class="msg" hidden></div>
-    <div id="msg" class="msg" hidden></div>
-    <div id="tiles"></div>
-  </main>
+  <!-- Home of every app: the tiles you may open, grouped in folders (cards that fold and move). Shared UI: /platform/v1/. -->
+  <div class="fg-app">
+    <aside id="side"></aside>
+    <main class="fg-work">
+      <div class="fg-top"><h1>Your apps</h1><span class="fg-muted">Apps you have been given access to. Ask an admin if one is missing.</span></div>
+      <div id="notice" class="msg" hidden></div>
+      <div id="msg" class="msg" hidden></div>
+      <div id="tiles"></div>
+    </main>
+  </div>
   <script type="module">
     import { api, esc, showMsg } from '/portal.js';
     const msg = document.getElementById('msg');
     const tile = (a) => `<a class="tile" href="${esc(a.url)}"><h2>${esc(a.name)}</h2><p class="muted">${esc(a.description)}</p><span class="role">${esc(a.role)}</span></a>`;
+    const folder = (name, inner, n) => `<section class="fg-section" data-id="${esc(name)}"><div class="fg-section-head"><span class="fg-handle" title="Drag to move">⠿</span>
+      <span class="fg-chev">▾</span><h2>${esc(name)} <span class="fg-muted">${n}</span></h2></div><div class="fg-section-body"><div class="tiles">${inner}</div></div></section>`;
     try {
       const me = await api('me');
-      document.getElementById('who').textContent = me.email;
-      document.getElementById('admin-link').hidden = !me.admin;
+      FG.configure({ app: 'portal', user: me.email });
+      FG.shell(document.getElementById('side'), {
+        app: 'portal', name: 'FortifyGrid', icon: '/assets/planner-192.png', home: '/', user: me.email, current: 'apps',
+        sections: [{ id: 'apps', label: 'Your apps', href: '/' }, ...(me.admin ? [{ id: 'admin', label: 'Manage users', href: '/admin/' }] : [])],
+      });
       if (me.notice) showMsg(document.getElementById('notice'), me.notice);
-      // Apps grouped into folders (admin → Apps → Folder); folders in folder_sort order, "Other apps" last.
+      // Apps grouped into folders (admin → Apps → Folder); folders in folder_sort order, "Other apps" last. Each person can fold / reorder.
       const folders = new Map();
       for (const a of [...me.apps].sort((x, y) => (x.folder ? x.folder_sort : 1e9) - (y.folder ? y.folder_sort : 1e9))) {
         const name = a.folder || 'Other apps';
         if (!folders.has(name)) folders.set(name, []);
         folders.get(name).push(a);
       }
-      let html = [...folders].map(([name, apps]) =>
-        `<section class="folder"><h2 class="folder-title">${esc(name)}</h2><div class="tiles">${apps.map(tile).join('')}</div></section>`).join('');
+      let html = [...folders].map(([name, apps]) => folder(name, apps.map(tile).join(''), apps.length)).join('');
       // The staged website (next version of fortifygrid.com) is kept apart from the apps; admins only.
       if (me.admin) {
-        html += `<section class="folder"><h2 class="folder-title">Website</h2><div class="tiles"><a class="tile" href="/staging/"><h2>Staged website</h2>
-          <p class="muted">Walk through the next version of fortifygrid.com exactly as it will look, before it goes live.</p><span class="role">admin</span></a></div></section>`;
+        html += folder('Website', `<a class="tile" href="/staging/"><h2>Staged website</h2>
+          <p class="muted">Walk through the next version of fortifygrid.com exactly as it will look, before it goes live.</p><span class="role">admin</span></a>`, 1);
       }
       document.getElementById('tiles').innerHTML = html;
+      FG.sections(document.getElementById('tiles'), { key: 'folders' });
       if (!me.apps.length && !me.admin) showMsg(msg, 'No apps yet. Ask a FortifyGrid admin to give you access.');
     } catch (e) {
       showMsg(msg, e.message, 'err');
