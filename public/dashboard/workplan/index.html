@@ -17,6 +17,9 @@
     .chip.on { background: var(--green); color: #fff; border-color: var(--green); }
     .bar .grow { flex: 1; }
     th[data-sort] { cursor: pointer; user-select: none; white-space: nowrap; }
+    .subtabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-top: 8px; overflow-x: auto; }
+    .subtabs button { background: none; color: var(--ink); border: 0; border-bottom: 3px solid transparent; border-radius: 0; white-space: nowrap; }
+    .subtabs button.on { border-color: var(--green); color: var(--green); font-weight: 600; }
     th.hd[draggable=true] { cursor: grab; } th.over { outline: 2px dashed var(--green); }
     tr.flt th { padding: 4px 6px; font-weight: normal; } tr.flt select, tr.flt input { width: 100%; min-width: 90px; font: inherit; padding: 3px 4px; border: 1px solid var(--line); border-radius: 4px; }
     th[data-sort].asc::after { content: ' ▲'; } th[data-sort].desc::after { content: ' ▼'; }
@@ -63,6 +66,7 @@
     <div id="msg" class="msg" hidden></div>
 
     <section data-tab="workplan" hidden>
+      <div class="subtabs" id="ws-tabs"></div>
       <div class="week"><b id="wk"></b><span id="wk-dates" class="muted"></span></div>
       <div class="bar">
         <div class="chips" id="filters">
@@ -90,6 +94,11 @@
     <section data-tab="admin" hidden>
       <p class="muted">Tick the tabs each person may open. Ticking any tab adds them to Workplan; unticking all removes them.
         Workplan admins see every tab (set the role at <a href="/admin/">Manage users</a>).</p>
+      <h3>Workstreams</h3>
+      <p class="muted">The sub-tabs of Workplan. Rename, reorder or add. A workstream that still has tasks can't be deleted: move them first (select tasks, Edit selected, Workstream).</p>
+      <div class="table-wrap"><table><tbody id="wslist"></tbody></table></div>
+      <form id="ws-add" class="bar"><input name="name" placeholder="New workstream" required maxlength="40"><button>Add</button></form>
+      <h3>Tab access</h3>
       <div class="table-wrap"><table><thead><tr><th>User</th><th>Workplan</th><th>System Pricing</th><th>Accounts</th><th>Role</th></tr></thead>
         <tbody id="access"></tbody></table></div>
     </section>
@@ -102,6 +111,7 @@
       <label>Project<input name="project" list="projects" type="text"></label>
       <label>Category<input name="category" list="categories" type="text"></label>
       <label class="full">Status<select name="status"></select></label>
+      <label class="full">Move to workstream<select name="workstream_id"></select></label>
       <label>Start date<input name="start_date" type="date"></label>
       <label>Due date<input name="due_date" type="date"></label>
       <p class="row-actions full"><button type="submit">Apply to selected</button><button type="button" class="ghost" id="bulk-cancel">Cancel</button></p>
@@ -111,6 +121,7 @@
   <dialog id="edit">
     <h3 id="edit-title" style="margin-top:0"></h3>
     <form id="edit-form">
+      <label class="full">Workstream<select name="workstream_id"></select></label>
       <label>Project<input name="project" list="projects" type="text"></label>
       <label>Category<input name="category" list="categories" type="text"></label>
       <label class="full">Task<textarea name="task" rows="2" required></textarea></label>
@@ -158,7 +169,7 @@
       document.querySelectorAll('section[data-tab]').forEach((s) => { s.hidden = s.dataset.tab !== name; });
       document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('on', b.dataset.tab === name));
       history.replaceState(null, '', `#${name}`);
-      if (name === 'admin') loadAccess();
+      if (name === 'admin') { loadAccess(); drawWsAdmin(); }
     }
 
     /* workplan */
@@ -176,17 +187,19 @@
       project: { label: 'Project', sort: (t) => t.project.toLowerCase(), f: (t) => t.project, cell: (t) => tag(t.project) },
       category: { label: 'Category', sort: (t) => (t.category || '').toLowerCase(), f: (t) => t.category || '', cell: (t) => tag(t.category) },
       task: { label: 'Task', cls: 'task', sort: (t) => t.task.toLowerCase(), text: true, cell: (t) => esc(t.task) + (t.status === 'complete' && t.completed_at ? ` <span class="muted" style="font-size:12px;font-weight:400">· removed in ${Math.max(0, 30 - Math.floor((Date.now() - Date.parse(t.completed_at)) / 864e5))}d</span>` : '') },
-      dep: { label: 'Depends on', sort: (t) => (t.depends_on ? byId(t.depends_on)?.task || '' : t.depends_note).toLowerCase(), cell: dep },
+      dep: { label: 'Depends on', sort: (t) => (t.depends_on ? byId(t.depends_on)?.task || '' : t.depends_note).toLowerCase(),
+        f: (t) => { const d = t.depends_on && byId(t.depends_on); return (d ? `#${d.id} ${d.task}` : t.depends_note || '').slice(0, 60); }, cell: dep },
       week: { label: 'Week', cls: 'nowrap', sort: (t) => span(t)[0] || '9999', f: weekLabel, cell: (t) => weekLabel(t) || '—' },
       due: { label: 'Target dates', cls: 'dates nowrap', sort: (t) => span(t)[1] || '9999', cell: (t) => (span(t)[0] ? `${fmt(span(t)[0])} – ${fmt(span(t)[1])}` : '—') },
       status: { label: 'Status', sort: (t) => Object.keys(STATUS).indexOf(t.status), f: (t) => t.status, show: (v) => STATUS[v], cell: status },
     };
     const DEFAULT = Object.keys(COLS);
-    let order = DEFAULT, flt = {}, picked = new Set(), shown = [];
+    let order = DEFAULT, flt = {}, picked = new Set(), shown = [], wss = [], ws = 0;
+    const inWs = () => tasks.filter((t) => t.workstream_id === ws);
     try { const o = JSON.parse(localStorage.getItem('wp-cols')); if (Array.isArray(o) && o.length === DEFAULT.length && DEFAULT.every((k) => o.includes(k))) order = o; } catch {}
     const NONE = '\u0000';
     const optVals = (k) => {
-      const c = COLS[k], vals = [...new Set(tasks.map(c.f))];
+      const c = COLS[k], vals = [...new Set(inWs().map(c.f))];
       return vals.sort((a, b) => (c.show ? Object.keys(STATUS).indexOf(a) - Object.keys(STATUS).indexOf(b) : String(a).localeCompare(String(b), undefined, { numeric: true })));
     };
     function buildHead() {
@@ -204,7 +217,7 @@
       const keep = { all: () => true, today: (t) => t.status !== 'complete' && (t.due_date === today || t.due_date === ymd(addDays(new Date(), 1))), current: (t) => overlaps(t, from, to), next2: (t) => overlaps(t, n1, n2), overdue: late }[filter];
       const colOk = (t) => Object.entries(flt).every(([k, v]) => !v || (COLS[k].text ? t.task.toLowerCase().includes(v.toLowerCase()) : (COLS[k].f(t) || NONE) === v));
       const sv = COLS[sort.key].sort;
-      const list = tasks.filter((t) => keep(t) && colOk(t))
+      const list = inWs().filter((t) => keep(t) && colOk(t))
         .sort((a, b) => { const x = sv(a), y = sv(b); return (x < y ? -1 : x > y ? 1 : a.id - b.id) * sort.dir; });
       $('rows').innerHTML = list.map((t) => `<tr class="st-${t.status}${late(t) ? ' late' : ''}"><td><input type="checkbox" data-sel="${t.id}" aria-label="Select task #${t.id}"${picked.has(t.id) ? ' checked' : ''}></td>${order.map((k) => {
         const c = COLS[k]; return `<td data-label="${c.label}" class="${c.cls || ''}">${c.cell(t)}</td>`; }).join('')}
@@ -213,10 +226,25 @@
       shown = list.map((t) => t.id);
       $('sel').hidden = !picked.size; $('sel-n').textContent = picked.size;
       const all = $('all'); if (all) { all.checked = shown.length > 0 && shown.every((i) => picked.has(i)); all.indeterminate = !all.checked && shown.some((i) => picked.has(i)); }
-      $('count').textContent = `${list.length} of ${tasks.length} tasks`;
+      $('count').textContent = `${list.length} of ${inWs().length} tasks`;
       $('clear').hidden = !Object.values(flt).some(Boolean);
       document.querySelectorAll('th[data-sort]').forEach((th) => th.className = 'hd ' + (th.dataset.sort === sort.key ? (sort.dir > 0 ? 'asc' : 'desc') : ''));
     }
+    /* workstreams = sub-tabs; edited in Admin */
+    const wsOpts = (none) => (none ? '<option value="">— no change —</option>' : '') + wss.map((w) => `<option value="${w.id}">${esc(w.name)}</option>`).join('');
+    async function loadWs() {
+      wss = await api('workplan/workstreams');
+      if (!wss.some((w) => w.id === ws)) { let s = 0; try { s = Number(localStorage.getItem('wp-ws')); } catch {} ws = wss.some((w) => w.id === s) ? s : wss[0]?.id || 0; }
+      $('ws-tabs').innerHTML = wss.map((w) => `<button class="${w.id === ws ? 'on' : ''}" data-ws="${w.id}">${esc(w.name)}</button>`).join('');
+      form.workstream_id.innerHTML = wsOpts(false); $('bulk-form').workstream_id.innerHTML = wsOpts(true);
+    }
+    $('ws-tabs').addEventListener('click', (e) => {
+      const id = Number(e.target.dataset.ws); if (!id) return;
+      ws = id; try { localStorage.setItem('wp-ws', id); } catch {}
+      picked.clear(); flt = {};
+      document.querySelectorAll('#ws-tabs button').forEach((b) => b.classList.toggle('on', Number(b.dataset.ws) === ws));
+      buildHead(); render();
+    });
     async function loadTasks() {
       tasks = await api('workplan/tasks');
       const list = (k) => [...new Set(tasks.map((t) => t[k]).filter(Boolean))].sort();
@@ -287,6 +315,7 @@
       $('edit-title').textContent = t ? `Edit task #${t.id}` : 'Add task';
       form.depends_on.innerHTML = '<option value="">None</option>' + tasks.filter((x) => x.id !== t?.id)
         .map((x) => `<option value="${x.id}">#${x.id} ${esc(x.task.slice(0, 60))}</option>`).join('');
+      form.workstream_id.value = t?.workstream_id || ws;
       for (const k of ['project', 'category', 'task', 'depends_note', 'start_date', 'due_date']) form[k].value = t?.[k] || '';
       form.status.value = t?.status || 'not_started';
       form.depends_on.value = t?.depends_on || '';
@@ -299,7 +328,7 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const t = Object.fromEntries(new FormData(form));
-      t.depends_on = Number(t.depends_on) || null;
+      t.depends_on = Number(t.depends_on) || null; t.workstream_id = Number(t.workstream_id);
       if (editing) t.id = editing.id;
       $('edit').close();
       await save(t);
@@ -308,6 +337,34 @@
       if (!confirm(`Delete task #${editing.id}?`)) return;
       $('edit').close();
       try { await api(`workplan/tasks/${editing.id}`, { method: 'DELETE' }); await loadTasks(); } catch (e) { showMsg(msg, e.message, 'err'); }
+    });
+
+    /* admin: workstreams */
+    function drawWsAdmin() {
+      $('wslist').innerHTML = wss.map((w, i) => `<tr><td><input value="${esc(w.name)}" data-wsname="${w.id}" maxlength="40" aria-label="Workstream name"></td>
+        <td class="nowrap"><button class="ghost" data-mv="${w.id}" data-d="-1"${i === 0 ? ' disabled' : ''} aria-label="Move up">▲</button>
+        <button class="ghost" data-mv="${w.id}" data-d="1"${i === wss.length - 1 ? ' disabled' : ''} aria-label="Move down">▼</button>
+        <button class="danger" data-wsdel="${w.id}">Delete</button></td></tr>`).join('');
+    }
+    async function wsDo(fn) {
+      try { await fn(); await loadWs(); drawWsAdmin(); buildHead(); render(); showMsg(msg, ''); }
+      catch (e) { showMsg(msg, e.message, 'err'); await loadWs().catch(() => {}); drawWsAdmin(); }
+    }
+    $('wslist').addEventListener('change', (e) => { const id = e.target.dataset.wsname; if (id) wsDo(() => api(`workplan/workstreams/${id}`, { method: 'POST', body: { name: e.target.value } })); });
+    $('wslist').addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.mv) {
+        const ids = wss.map((w) => w.id), i = ids.indexOf(Number(b.dataset.mv)), j = i + Number(b.dataset.d);
+        [ids[i], ids[j]] = [ids[j], ids[i]];
+        wsDo(() => api('workplan/workstreams/order', { method: 'POST', body: { ids } }));
+      } else if (b.dataset.wsdel) {
+        const w = wss.find((x) => x.id === Number(b.dataset.wsdel));
+        if (confirm(`Delete workstream "${w.name}"?`)) wsDo(() => api(`workplan/workstreams/${w.id}`, { method: 'DELETE' }));
+      }
+    });
+    $('ws-add').addEventListener('submit', (e) => {
+      e.preventDefault(); const name = e.target.name.value;
+      wsDo(async () => { await api('workplan/workstreams', { method: 'POST', body: { name } }); e.target.reset(); });
     });
 
     /* admin: tab permissions per user */
@@ -341,6 +398,7 @@
       if (!allowed.length) showMsg(msg, 'No tabs yet. Ask a Workplan admin to give you access.');
       else showTab(allowed.includes(location.hash.slice(1)) ? location.hash.slice(1) : allowed[0]);
       addEventListener('hashchange', () => { if (allowed.includes(location.hash.slice(1))) showTab(location.hash.slice(1)); });
+      if (allowed.includes('workplan') || allowed.includes('admin')) await loadWs();
       if (allowed.includes('workplan')) await loadTasks();
     } catch (e) {
       showMsg(msg, e.message, 'err');

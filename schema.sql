@@ -186,6 +186,7 @@ CREATE TABLE IF NOT EXISTS wp_tasks (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   project      TEXT NOT NULL DEFAULT '',
   category     TEXT NOT NULL DEFAULT '',  -- existing DBs: run once  ALTER TABLE wp_tasks ADD COLUMN category TEXT NOT NULL DEFAULT '';
+  workstream_id INTEGER,  -- wp_workstreams.id. Existing DBs: ALTER TABLE wp_tasks ADD COLUMN workstream_id INTEGER;
   completed_at TEXT,  -- set when status becomes complete; task is deleted 30 days later. Existing DBs: ALTER TABLE wp_tasks ADD COLUMN completed_at TEXT;
   task         TEXT NOT NULL,
   depends_on   INTEGER,
@@ -197,3 +198,14 @@ CREATE TABLE IF NOT EXISTS wp_tasks (
   updated_at   TEXT NOT NULL,
   updated_by   TEXT NOT NULL
 );
+
+-- Workplan workstreams = sub-tabs of the Workplan tab. Edited in the Workplan Admin tab. Seeded once; tasks without one go to the first.
+CREATE TABLE IF NOT EXISTS wp_workstreams (
+  id   INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  sort INTEGER NOT NULL DEFAULT 0
+);
+INSERT INTO wp_workstreams (name, sort)
+  SELECT n, s FROM (SELECT 'Work' n, 1 s UNION ALL SELECT 'Family', 2 UNION ALL SELECT 'Others', 3)
+  WHERE NOT EXISTS (SELECT 1 FROM wp_workstreams);
+UPDATE wp_tasks SET workstream_id = (SELECT id FROM wp_workstreams ORDER BY sort, id LIMIT 1) WHERE workstream_id IS NULL;
