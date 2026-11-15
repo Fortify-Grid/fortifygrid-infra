@@ -157,3 +157,41 @@ INSERT OR IGNORE INTO app_folders (app_id, folder, folder_sort) VALUES
   ('query', 'Market Data', 1),
   ('revenue', 'BTM Agentic Tools', 2),
   ('ide', 'BTM Agentic Tools', 2);
+
+-- Extra tabs for one user on top of their role's tabs (role_tabs). The Workplan Admin tab edits these.
+CREATE TABLE IF NOT EXISTS user_tabs (
+  app_id TEXT NOT NULL,
+  email  TEXT NOT NULL,
+  tab    TEXT NOT NULL,
+  PRIMARY KEY (app_id, email, tab)
+);
+
+-- Workplan: app.fortifygrid.com/workplan/, served by this Worker. Tabs workplan, pricing, accounts (given per user in
+-- the app's Admin tab) and admin (role admin). Roles: member (only the tabs ticked for them), admin (every tab).
+INSERT OR IGNORE INTO apps (id, name, description, url, roles, sort, created_at, updated_at) VALUES
+  ('workplan', 'Workplan', 'Weekly tasks by project: dependencies, target dates, status. System Pricing and Accounts coming.',
+   'https://app.fortifygrid.com/workplan/', '["member","admin"]', 5, datetime('now'), datetime('now'));
+INSERT OR IGNORE INTO app_tabs (app_id, tab, label, sort) VALUES
+  ('workplan', 'workplan', 'Workplan', 1),
+  ('workplan', 'pricing', 'System Pricing', 2),
+  ('workplan', 'accounts', 'Accounts', 3),
+  ('workplan', 'admin', 'Admin (tab permissions)', 4);
+INSERT INTO role_tabs (app_id, role, tab)
+  SELECT 'workplan', 'admin', tab FROM app_tabs WHERE app_id = 'workplan'
+  AND NOT EXISTS (SELECT 1 FROM role_tabs WHERE app_id = 'workplan');
+INSERT OR IGNORE INTO app_folders (app_id, folder, folder_sort) VALUES ('workplan', 'Operations', 3);
+
+-- Workplan tasks. Dates are YYYY-MM-DD; the week number (ISO) comes from the dates. depends_on = another task's id.
+CREATE TABLE IF NOT EXISTS wp_tasks (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  project      TEXT NOT NULL DEFAULT '',
+  task         TEXT NOT NULL,
+  depends_on   INTEGER,
+  depends_note TEXT NOT NULL DEFAULT '',
+  start_date   TEXT,
+  due_date     TEXT,
+  status       TEXT NOT NULL DEFAULT 'not_started',
+  created_at   TEXT NOT NULL,
+  updated_at   TEXT NOT NULL,
+  updated_by   TEXT NOT NULL
+);

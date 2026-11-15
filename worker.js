@@ -380,14 +380,97 @@ async function deleteSetting(env, actor, key) {
   return { ok: true };
 }
 
-// Tabs a user may see in appId. Bootstrap admins see every tab.
+// Tabs a user may see in appId: their role's tabs plus any given to them alone (user_tabs). Bootstrap admins see every tab.
 async function appTabs(env, user, appId) {
   const role = user?.apps[appId];
   if (!role) return [];
   const q = user.bootstrap
     ? env.DB.prepare('SELECT tab FROM app_tabs WHERE app_id = ?').bind(appId)
-    : env.DB.prepare('SELECT tab FROM role_tabs WHERE app_id = ? AND role = ?').bind(appId, role);
+    : env.DB.prepare('SELECT tab FROM role_tabs WHERE app_id = ?1 AND role = ?2 UNION SELECT tab FROM user_tabs WHERE app_id = ?1 AND email = ?3')
+      .bind(appId, role, user.email);
   return (await q.all()).results.map((r) => r.tab);
+}
+
+/* ---------- Workplan (app.fortifygrid.com/workplan/) ----------
+   Tasks in D1 wp_tasks. Tabs: workplan, pricing, accounts are ticked per user in the app's Admin tab (user_tabs);
+   ticking any tab gives the user the member role, unticking all removes it. Role admin sees every tab. */
+
+const WP = 'workplan';
+const WP_TABS = ['workplan', 'pricing', 'accounts'];
+const WP_STATUS = ['not_started', 'in_progress', 'blocked', 'complete'];
+const wpDate = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : null);
+
+async function workplanApi(req, env, user, path, method) {
+  const tabs = await appTabs(env, user, WP);
+  const need = (t) => { if (!tabs.includes(t)) throw new HttpError(403, 'You do not have this tab. Ask a Workplan admin.'); };
+  const [, resource, rawId] = path.split('/');
+  const id = Number(rawId) || 0;
+  const body = method === 'POST' ? await req.json().catch(() => ({})) : {};
+
+  if (resource === 'me' && method === 'GET') return json({ email: user.email, role: user.apps[WP] || null, tabs });
+
+  if (resource === 'tasks') {
+    need('workplan');
+    if (method === 'GET') return json((await env.DB.prepare('SELECT * FROM wp_tasks ORDER BY id').all()).results);
+    if (method === 'DELETE' && id) {
+      await env.DB.batch([
+        env.DB.prepare('UPDATE wp_tasks SET depends_on = NULL WHERE depends_on = ?').bind(id),
+        env.DB.prepare('DELETE FROM wp_tasks WHERE id = ?').bind(id),
+      ]);
+      await audit(env, user.email, 'delete task', `${WP}#${id}`);
+      return json({ ok: true });
+    }
+    if (method === 'POST') {
+      const task = String(body.task || '').trim().slice(0, 500);
+      if (!task) throw new HttpError(400, 'Task is required.');
+      const start = wpDate(body.start_date), due = wpDate(body.due_date);
+      if (start && due && due < start) throw new HttpError(400, 'Due date is before start date.');
+      const dep = Number(body.depends_on) || null;
+      if (dep && dep === id) throw new HttpError(400, 'A task cannot depend on itself.');
+      const vals = [String(body.project || '').trim().slice(0, 80), task, dep, String(body.depends_note || '').trim().slice(0, 300),
+        start, due, WP_STATUS.includes(body.status) ? body.status : 'not_started', now(), user.email];
+      if (id) {
+        const r = await env.DB.prepare(`UPDATE wp_tasks SET project = ?1, task = ?2, depends_on = ?3, depends_note = ?4, start_date = ?5,
+            due_date = ?6, status = ?7, updated_at = ?8, updated_by = ?9 WHERE id = ?10`).bind(...vals, id).run();
+        if (!r.meta.changes) throw new HttpError(404, 'No such task.');
+      } else {
+        await env.DB.prepare(`INSERT INTO wp_tasks (project, task, depends_on, depends_note, start_date, due_date, status, updated_at, updated_by, created_at)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?8)`).bind(...vals).run();
+      }
+      return json({ ok: true });
+    }
+  }
+
+  if (resource === 'access') {
+    need('admin');
+    if (method === 'GET') {
+      const { results: users } = await env.DB.prepare(`SELECT u.email, u.name, a.role FROM users u
+          LEFT JOIN app_access a ON a.email = u.email AND a.app_id = ? WHERE u.active = 1 ORDER BY u.email`).bind(WP).all();
+      for (const email of bootstrapAdmins(env)) {
+        const u = users.find((x) => x.email === email);
+        if (u) u.role = 'admin'; else users.unshift({ email, name: '', role: 'admin' });
+      }
+      const { results: grants } = await env.DB.prepare('SELECT email, tab FROM user_tabs WHERE app_id = ?').bind(WP).all();
+      return json(users.map((u) => ({ ...u, tabs: grants.filter((g) => g.email === u.email).map((g) => g.tab) })));
+    }
+    if (method === 'POST') {
+      const email = normEmail(body.email);
+      if (!(await env.DB.prepare('SELECT 1 FROM users WHERE email = ? AND active = 1').bind(email).first())) throw new HttpError(404, 'No such active user.');
+      const role = (await env.DB.prepare('SELECT role FROM app_access WHERE email = ? AND app_id = ?').bind(email, WP).first())?.role;
+      if (role === 'admin' || bootstrapAdmins(env).includes(email)) throw new HttpError(400, 'Workplan admins see every tab.');
+      const want = WP_TABS.filter((t) => Array.isArray(body.tabs) && body.tabs.includes(t));
+      await env.DB.batch([
+        env.DB.prepare('DELETE FROM user_tabs WHERE app_id = ? AND email = ?').bind(WP, email),
+        ...want.map((t) => env.DB.prepare('INSERT INTO user_tabs (app_id, email, tab) VALUES (?, ?, ?)').bind(WP, email, t)),
+        want.length
+          ? env.DB.prepare("INSERT OR IGNORE INTO app_access (email, app_id, role) VALUES (?, ?, 'member')").bind(email, WP)
+          : env.DB.prepare("DELETE FROM app_access WHERE email = ? AND app_id = ? AND role = 'member'").bind(email, WP),
+      ]);
+      await audit(env, user.email, 'set user tabs', email, JSON.stringify({ app: WP, tabs: want }));
+      return json({ ok: true });
+    }
+  }
+  throw new HttpError(404, 'Not found');
 }
 
 /* ---------- Router ---------- */
@@ -411,6 +494,7 @@ async function api(req, env, url) {
     return json({ email: user.email, name: user.name, admin: user.admin, apps, notice: notice?.value || '' });
   }
 
+  if (path.startsWith('workplan/')) return workplanApi(req, env, user, path, method);
   if (!path.startsWith('admin/')) throw new HttpError(404, 'Not found');
   if (!user.admin) throw new HttpError(403, 'Admins only.');
   const [, resource, rawId, sub] = path.split('/');
@@ -512,6 +596,14 @@ async function portalHost(req, env, url) {
       return json({ message: e.message }, e.status || 500);
     }
     return env.IDE.fetch(req); // fortifygrid-ide Worker (repo Fortify-Grid/fortifygrid-ide), no public route
+  }
+  // /workplan/ needs a workplan role; the page itself is static (public/dashboard/workplan/), its API checks tabs.
+  if (/^\/workplan(\/|$)/.test(url.pathname)) {
+    try {
+      if (!(await currentUser(req, env)).apps[WP]) throw new HttpError(403, 'No Workplan access. Ask a Workplan admin.');
+    } catch (e) {
+      return json({ message: e.message }, e.status || 500);
+    }
   }
   const inner = new URL(url);
   inner.pathname = `/dashboard${url.pathname}`;

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FortifyGrid Workplan</title>
+  <link rel="icon" type="image/png" href="/assets/favicon.png">
+  <link href="https://fonts.googleapis.com/css2?family=Old+Standard+TT&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/portal.css">
+  <style>
+    .week { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; background: var(--card); border: 1px solid var(--line);
+      border-left: 4px solid var(--green); border-radius: 8px; padding: 14px 18px; margin: 12px 0; }
+    .week b { font-size: 22px; color: var(--green); }
+    .bar { position: sticky; top: 0; z-index: 5; background: var(--bg); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 0; }
+    .chips { display: flex; gap: 6px; overflow-x: auto; }
+    .chip { background: var(--card); color: var(--ink); border-color: var(--line); white-space: nowrap; border-radius: 16px; }
+    .chip.on { background: var(--green); color: #fff; border-color: var(--green); }
+    .bar .grow { flex: 1; }
+    th[data-sort] { cursor: pointer; user-select: none; white-space: nowrap; }
+    th[data-sort].asc::after { content: ' ▲'; } th[data-sort].desc::after { content: ' ▼'; }
+    .tag { display: inline-block; font-size: 12px; background: #e9f1eb; color: var(--green); border-radius: 10px; padding: 2px 8px; }
+    .wait { color: var(--coral); font-size: 12px; }
+    td.task { font-weight: 500; }
+    td.nowrap { white-space: nowrap; }
+    tr.st-complete td.task { text-decoration: line-through; color: var(--muted); }
+    tr.late td.dates { color: var(--coral); font-weight: 600; }
+    select.status { min-width: 120px; }
+    .soon { background: var(--card); border: 1px dashed var(--line); border-radius: 8px; padding: 48px 20px; text-align: center; margin-top: 16px; }
+    dialog { border: 1px solid var(--line); border-radius: 8px; padding: 18px; width: min(520px, calc(100vw - 32px)); }
+    dialog form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    dialog .full { grid-column: 1 / -1; }
+    dialog textarea, dialog input, dialog select { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; width: 100%; }
+    td input[type=checkbox] { width: 20px; height: 20px; }
+    /* Phone: each task row becomes a stacked card, no sideways scrolling. */
+    @media (max-width: 720px) {
+      .table-wrap.cards { border: 0; overflow: visible; }
+      .cards table, .cards tbody, .cards tr, .cards td { display: block; width: 100%; }
+      .cards thead { display: none; }
+      .cards tr { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
+      .cards tr.st-blocked { border-left: 4px solid var(--coral); } .cards tr.st-in_progress { border-left: 4px solid var(--green); }
+      .cards td { border: 0; padding: 4px 0; display: flex; gap: 10px; justify-content: space-between; align-items: center; }
+      .cards td[data-label]::before { content: attr(data-label); font-size: 12px; color: var(--muted); text-transform: uppercase; }
+      .cards td.task { font-size: 16px; display: block; }
+      .cards td.task::before { display: none; }
+      button, select, .bar input { min-height: 40px; }
+      dialog form { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/"><img src="/assets/fortify-logo.svg" alt="FortifyGrid"></a>
+    <nav><span id="who" class="muted"></span><a href="/">All apps</a><a href="/cdn-cgi/access/logout">Sign out</a></nav>
+  </header>
+  <main>
+    <h1>Workplan</h1>
+    <div class="tabs" id="tabs"></div>
+    <div id="msg" class="msg" hidden></div>
+
+    <section data-tab="workplan" hidden>
+      <div class="week"><b id="wk"></b><span id="wk-dates" class="muted"></span></div>
+      <div class="bar">
+        <div class="chips" id="filters">
+          <button class="chip on" data-f="all">All weeks</button>
+          <button class="chip" data-f="current">Current week</button>
+          <button class="chip" data-f="next2">Next 2 weeks</button>
+          <button class="chip" data-f="overdue">Overdue</button>
+        </div>
+        <select id="project-filter" aria-label="Project"><option value="">All projects</option></select>
+        <span class="grow"></span>
+        <button id="add">+ Add task</button>
+      </div>
+      <div class="table-wrap cards"><table>
+        <thead><tr><th data-sort="project">Project</th><th data-sort="task">Task</th><th data-sort="dep">Depends on</th>
+          <th data-sort="week">Week</th><th data-sort="due">Target dates</th><th data-sort="status">Status</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table></div>
+      <p id="count" class="muted"></p>
+    </section>
+
+    <section data-tab="pricing" hidden><div class="soon"><h2>System Pricing</h2><p class="muted">Coming soon. This tab is under construction.</p></div></section>
+    <section data-tab="accounts" hidden><div class="soon"><h2>Accounts</h2><p class="muted">Coming soon. This tab is under construction.</p></div></section>
+
+    <section data-tab="admin" hidden>
+      <p class="muted">Tick the tabs each person may open. Ticking any tab adds them to Workplan; unticking all removes them.
+        Workplan admins see every tab (set the role at <a href="/admin/">Manage users</a>).</p>
+      <div class="table-wrap"><table><thead><tr><th>User</th><th>Workplan</th><th>System Pricing</th><th>Accounts</th><th>Role</th></tr></thead>
+        <tbody id="access"></tbody></table></div>
+    </section>
+  </main>
+
+  <dialog id="edit">
+    <h3 id="edit-title" style="margin-top:0"></h3>
+    <form id="edit-form">
+      <label>Project<input name="project" list="projects" type="text"></label>
+      <label>Status<select name="status"></select></label>
+      <label class="full">Task<textarea name="task" rows="2" required></textarea></label>
+      <label>Depends on<select name="depends_on"></select></label>
+      <label>Dependency note<input name="depends_note" type="text" placeholder="e.g. waiting on utility data"></label>
+      <label>Start date<input name="start_date" type="date"></label>
+      <label>Due date<input name="due_date" type="date"></label>
+      <p class="row-actions full"><button type="submit">Save</button><button type="button" class="ghost" id="edit-cancel">Cancel</button>
+        <button type="button" class="danger" id="edit-delete">Delete</button></p>
+    </form>
+    <datalist id="projects"></datalist>
+  </dialog>
+
+  <script type="module">
+    import { api, esc, showMsg } from '/portal.js';
+    const $ = (id) => document.getElementById(id);
+    const msg = $('msg');
+    const TABS = { workplan: 'Workplan', pricing: 'System Pricing', accounts: 'Accounts', admin: 'Admin' };
+    const STATUS = { not_started: 'Not started', in_progress: 'In progress', blocked: 'Blocked', complete: 'Complete' };
+
+    /* dates: local, as YYYY-MM-DD; ISO weeks start Monday */
+    const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const parse = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+    const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+    const monday = (d) => addDays(d, -((d.getDay() + 6) % 7));
+    const isoWeek = (d) => 1 + Math.round((monday(d) - monday(new Date(addDays(monday(d), 3).getFullYear(), 0, 4))) / 6048e5);
+    const fmt = (s) => parse(s).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const today = ymd(new Date());
+    const wk0 = monday(new Date());
+    const span = (t) => [t.start_date || t.due_date, t.due_date || t.start_date]; // null, null if undated
+    const overlaps = (t, from, to) => { const [a, b] = span(t); return a && a <= to && b >= from; };
+    const late = (t) => t.due_date && t.due_date < today && t.status !== 'complete';
+    const weekLabel = (t) => {
+      const [a, b] = span(t); if (!a) return '';
+      const w1 = isoWeek(parse(a)), w2 = isoWeek(parse(b));
+      return w1 === w2 ? `W${w1}` : `W${w1}–W${w2}`;
+    };
+    $('wk').textContent = `Current: Week ${isoWeek(wk0)}`;
+    $('wk-dates').textContent = `${fmt(ymd(wk0))} – ${fmt(ymd(addDays(wk0, 6)))}, ${addDays(wk0, 6).getFullYear()}`;
+
+    /* tabs the user may open (from the server; the API enforces them too) */
+    let me;
+    function showTab(name) {
+      document.querySelectorAll('section[data-tab]').forEach((s) => { s.hidden = s.dataset.tab !== name; });
+      document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('on', b.dataset.tab === name));
+      history.replaceState(null, '', `#${name}`);
+      if (name === 'admin') loadAccess();
+    }
+
+    /* workplan */
+    let tasks = [], filter = 'all', sort = { key: 'week', dir: 1 }, editing = null;
+    const byId = (id) => tasks.find((t) => t.id === id);
+    const sortVal = {
+      project: (t) => t.project.toLowerCase(), task: (t) => t.task.toLowerCase(), dep: (t) => (t.depends_on ? byId(t.depends_on)?.task || '' : t.depends_note).toLowerCase(),
+      week: (t) => span(t)[0] || '9999', due: (t) => span(t)[1] || '9999', status: (t) => Object.keys(STATUS).indexOf(t.status),
+    };
+    const status = (t) => `<select class="status" data-id="${t.id}" aria-label="Status">${Object.entries(STATUS).map(([k, v]) =>
+      `<option value="${k}"${k === t.status ? ' selected' : ''}>${v}</option>`).join('')}</select>`;
+    const dep = (t) => {
+      const d = t.depends_on && byId(t.depends_on);
+      return [d ? `#${d.id} ${esc(d.task)}${d.status === 'complete' ? '' : ' <span class="wait">(waiting)</span>'}` : '', esc(t.depends_note)].filter(Boolean).join('<br>') || '—';
+    };
+    function render() {
+      const from = ymd(wk0), to = ymd(addDays(wk0, 6)), n1 = ymd(addDays(wk0, 7)), n2 = ymd(addDays(wk0, 20));
+      const project = $('project-filter').value;
+      const keep = { all: () => true, current: (t) => overlaps(t, from, to), next2: (t) => overlaps(t, n1, n2), overdue: late }[filter];
+      const list = tasks.filter((t) => keep(t) && (!project || t.project === project))
+        .sort((a, b) => { const x = sortVal[sort.key](a), y = sortVal[sort.key](b); return (x < y ? -1 : x > y ? 1 : a.id - b.id) * sort.dir; });
+      $('rows').innerHTML = list.map((t) => `<tr class="st-${t.status}${late(t) ? ' late' : ''}">
+        <td data-label="Project">${t.project ? `<span class="tag">${esc(t.project)}</span>` : '—'}</td>
+        <td class="task">${esc(t.task)}</td>
+        <td data-label="Depends on">${dep(t)}</td>
+        <td data-label="Week" class="nowrap">${weekLabel(t) || '—'}</td>
+        <td data-label="Target dates" class="dates nowrap">${span(t)[0] ? `${fmt(span(t)[0])} – ${fmt(span(t)[1])}` : '—'}</td>
+        <td data-label="Status">${status(t)}</td>
+        <td><button class="ghost" data-edit="${t.id}">Edit</button></td></tr>`).join('')
+        || '<tr><td colspan="7" class="muted">No tasks in this view.</td></tr>';
+      $('count').textContent = `${list.length} of ${tasks.length} tasks`;
+      document.querySelectorAll('th[data-sort]').forEach((th) => th.className = th.dataset.sort === sort.key ? (sort.dir > 0 ? 'asc' : 'desc') : '');
+    }
+    async function loadTasks() {
+      tasks = await api('workplan/tasks');
+      const projects = [...new Set(tasks.map((t) => t.project).filter(Boolean))].sort();
+      const pf = $('project-filter'), keepP = pf.value;
+      pf.innerHTML = `<option value="">All projects</option>${projects.map((p) => `<option>${esc(p)}</option>`).join('')}`;
+      pf.value = projects.includes(keepP) ? keepP : '';
+      $('projects').innerHTML = projects.map((p) => `<option value="${esc(p)}">`).join('');
+      render();
+    }
+    async function save(t) {
+      try { await api('workplan/tasks' + (t.id ? `/${t.id}` : ''), { method: 'POST', body: t }); await loadTasks(); showMsg(msg, ''); }
+      catch (e) { showMsg(msg, e.message, 'err'); }
+    }
+
+    $('filters').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-f]'); if (!b) return;
+      filter = b.dataset.f;
+      document.querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', c === b));
+      render();
+    });
+    $('project-filter').addEventListener('change', render);
+    document.querySelector('thead').addEventListener('click', (e) => {
+      const k = e.target.dataset.sort; if (!k) return;
+      sort = { key: k, dir: sort.key === k ? -sort.dir : 1 }; render();
+    });
+    $('rows').addEventListener('change', (e) => {
+      if (!e.target.matches('select.status')) return;
+      save({ ...byId(Number(e.target.dataset.id)), status: e.target.value });
+    });
+
+    /* add / edit dialog */
+    const form = $('edit-form');
+    form.status.innerHTML = Object.entries(STATUS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+    function openEdit(t) {
+      editing = t;
+      $('edit-title').textContent = t ? `Edit task #${t.id}` : 'Add task';
+      form.depends_on.innerHTML = '<option value="">None</option>' + tasks.filter((x) => x.id !== t?.id)
+        .map((x) => `<option value="${x.id}">#${x.id} ${esc(x.task.slice(0, 60))}</option>`).join('');
+      for (const k of ['project', 'task', 'depends_note', 'start_date', 'due_date']) form[k].value = t?.[k] || '';
+      form.status.value = t?.status || 'not_started';
+      form.depends_on.value = t?.depends_on || '';
+      $('edit-delete').hidden = !t;
+      $('edit').showModal();
+    }
+    $('add').addEventListener('click', () => openEdit(null));
+    $('rows').addEventListener('click', (e) => { const id = e.target.dataset.edit; if (id) openEdit(byId(Number(id))); });
+    $('edit-cancel').addEventListener('click', () => $('edit').close());
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const t = Object.fromEntries(new FormData(form));
+      t.depends_on = Number(t.depends_on) || null;
+      if (editing) t.id = editing.id;
+      $('edit').close();
+      await save(t);
+    });
+    $('edit-delete').addEventListener('click', async () => {
+      if (!confirm(`Delete task #${editing.id}?`)) return;
+      $('edit').close();
+      try { await api(`workplan/tasks/${editing.id}`, { method: 'DELETE' }); await loadTasks(); } catch (e) { showMsg(msg, e.message, 'err'); }
+    });
+
+    /* admin: tab permissions per user */
+    let access = [];
+    async function loadAccess() {
+      try {
+        access = await api('workplan/access');
+        $('access').innerHTML = access.map((u, i) => {
+          const admin = u.role === 'admin';
+          return `<tr><td>${esc(u.name || u.email)}${u.name ? `<br><span class="muted">${esc(u.email)}</span>` : ''}</td>
+            ${['workplan', 'pricing', 'accounts'].map((t) => `<td><input type="checkbox" data-u="${i}" data-t="${t}" aria-label="${TABS[t]}"
+              ${admin || u.tabs.includes(t) ? 'checked' : ''}${admin ? ' disabled' : ''}></td>`).join('')}
+            <td class="muted">${esc(u.role || '—')}</td></tr>`;
+        }).join('');
+      } catch (e) { showMsg(msg, e.message, 'err'); }
+    }
+    $('access').addEventListener('change', async (e) => {
+      const u = access[e.target.dataset.u]; if (!u) return;
+      const tabs = [...document.querySelectorAll(`#access input[data-u="${e.target.dataset.u}"]:checked`)].map((c) => c.dataset.t);
+      try { await api('workplan/access', { method: 'POST', body: { email: u.email, tabs } }); showMsg(msg, `Saved ${u.email}.`, 'ok'); await loadAccess(); }
+      catch (err) { showMsg(msg, err.message, 'err'); e.target.checked = !e.target.checked; }
+    });
+
+    /* start */
+    try {
+      me = await api('workplan/me');
+      $('who').textContent = me.email;
+      const allowed = Object.keys(TABS).filter((t) => me.tabs.includes(t));
+      $('tabs').innerHTML = allowed.map((t) => `<button class="tab" data-tab="${t}">${TABS[t]}</button>`).join('');
+      $('tabs').addEventListener('click', (e) => { if (e.target.dataset.tab) showTab(e.target.dataset.tab); });
+      if (!allowed.length) showMsg(msg, 'No tabs yet. Ask a Workplan admin to give you access.');
+      else showTab(allowed.includes(location.hash.slice(1)) ? location.hash.slice(1) : allowed[0]);
+      addEventListener('hashchange', () => { if (allowed.includes(location.hash.slice(1))) showTab(location.hash.slice(1)); });
+      if (allowed.includes('workplan')) await loadTasks();
+    } catch (e) {
+      showMsg(msg, e.message, 'err');
+    }
+  </script>
+</body>
+</html>

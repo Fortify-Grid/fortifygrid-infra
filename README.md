@@ -6,6 +6,7 @@ One Cloudflare Worker (`worker.js`) serves:
   - Tiles: `/`
   - Admin (users, apps, roles, tabs, settings): `/admin/`
   - Portal API: `/api/`
+  - `/workplan/`: Workplan app (tasks, per-user tabs), page `public/dashboard/workplan/`, API `/api/workplan/`
   - `/ide/`: role check, then forwarded to the IDE app (repo `fortifygrid-ide`)
 
 Platform wiring is in INFRA.md. Human setup steps are in USER_SETUP.md.
@@ -37,6 +38,7 @@ A push to `main` deploys: `.github/workflows/deploy.yml` applies `schema.sql`, t
 |---|---|
 | Public site | `public/index.html`, `site.css`, `script.js` |
 | Portal tiles | `public/dashboard/index.html`, `portal.js`, `portal.css` |
+| Workplan (tasks, Admin tab permissions) | `public/dashboard/workplan/index.html`; API `workplanApi` in `worker.js` |
 | Admin (users, apps, roles, tabs) | `public/dashboard/admin/index.html` |
 | Worker (routing, auth, `/api/`, app gates e.g. `/ide/`) | `worker.js`; tables `schema.sql` |
 | Cloudflare setup script | `infra/cf-setup.mjs` |

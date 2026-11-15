@@ -1,6 +1,6 @@
 # Status: platform and portal
 
-Updated 2026-10-25.
+Updated 2026-11-15.
 
 ## Live
 | Item | Since |
@@ -10,9 +10,11 @@ Updated 2026-10-25.
 | Auto-deploy on push for website, FGAI-RAG and revenue-analysis-module (repo secrets set) | ✅ |
 | Dashboard folders: Market Data = heatmap, query. BTM Agentic Tools = revenue, ide. Staging site at `/staging/` (admins) | 2026-10-24 |
 | Directory `users(appId)`: apps list who can open them (IDE uses it for per-project permissions) | 2026-10-25 |
+| Workplan at **app.fortifygrid.com/workplan/** (in this Worker): tasks in D1 `wp_tasks`, week view + filters, table on laptop / cards on phone. Tabs Workplan, System Pricing, Accounts ticked per user in its Admin tab (`user_tabs`). Pricing + Accounts are placeholders | 2026-11-15 |
 | IDE at **app.fortifygrid.com/ide/**: the portal checks the role and forwards to the `fortifygrid-ide` Worker (no public route) | 2026-10-25 |
 
 ## Open
+- Workplan: build System Pricing and Accounts tabs (data from RDS via Hyperdrive when needed).
 - Contact form doesn't send.
 - Secrets in git history not rotated (owner's choice).
 - AWS CLI root keys.
