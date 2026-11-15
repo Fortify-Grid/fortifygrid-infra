@@ -427,15 +427,15 @@ async function workplanApi(req, env, user, path, method) {
       if (start && due && due < start) throw new HttpError(400, 'Due date is before start date.');
       const dep = Number(body.depends_on) || null;
       if (dep && dep === id) throw new HttpError(400, 'A task cannot depend on itself.');
-      const vals = [String(body.project || '').trim().slice(0, 80), task, dep, String(body.depends_note || '').trim().slice(0, 300),
+      const vals = [String(body.project || '').trim().slice(0, 80), String(body.category || '').trim().slice(0, 80), task, dep, String(body.depends_note || '').trim().slice(0, 300),
         start, due, WP_STATUS.includes(body.status) ? body.status : 'not_started', now(), user.email];
       if (id) {
-        const r = await env.DB.prepare(`UPDATE wp_tasks SET project = ?1, task = ?2, depends_on = ?3, depends_note = ?4, start_date = ?5,
-            due_date = ?6, status = ?7, updated_at = ?8, updated_by = ?9 WHERE id = ?10`).bind(...vals, id).run();
+        const r = await env.DB.prepare(`UPDATE wp_tasks SET project = ?1, category = ?2, task = ?3, depends_on = ?4, depends_note = ?5,
+            start_date = ?6, due_date = ?7, status = ?8, updated_at = ?9, updated_by = ?10 WHERE id = ?11`).bind(...vals, id).run();
         if (!r.meta.changes) throw new HttpError(404, 'No such task.');
       } else {
-        await env.DB.prepare(`INSERT INTO wp_tasks (project, task, depends_on, depends_note, start_date, due_date, status, updated_at, updated_by, created_at)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?8)`).bind(...vals).run();
+        await env.DB.prepare(`INSERT INTO wp_tasks (project, category, task, depends_on, depends_note, start_date, due_date, status, updated_at, updated_by, created_at)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?9)`).bind(...vals).run();
       }
       return json({ ok: true });
     }

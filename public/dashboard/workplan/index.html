@@ -17,6 +17,8 @@
     .chip.on { background: var(--green); color: #fff; border-color: var(--green); }
     .bar .grow { flex: 1; }
     th[data-sort] { cursor: pointer; user-select: none; white-space: nowrap; }
+    th.hd[draggable=true] { cursor: grab; } th.over { outline: 2px dashed var(--green); }
+    tr.flt th { padding: 4px 6px; font-weight: normal; } tr.flt select, tr.flt input { width: 100%; min-width: 90px; font: inherit; padding: 3px 4px; border: 1px solid var(--line); border-radius: 4px; }
     th[data-sort].asc::after { content: ' ▲'; } th[data-sort].desc::after { content: ' ▼'; }
     .tag { display: inline-block; font-size: 12px; background: #e9f1eb; color: var(--green); border-radius: 10px; padding: 2px 8px; }
     .wait { color: var(--coral); font-size: 12px; }
@@ -35,7 +37,9 @@
     @media (max-width: 720px) {
       .table-wrap.cards { border: 0; overflow: visible; }
       .cards table, .cards tbody, .cards tr, .cards td { display: block; width: 100%; }
-      .cards thead { display: none; }
+      .cards thead, .cards thead tr.flt { display: flex; flex-wrap: wrap; gap: 6px; border: 0; padding: 0; background: none; margin-bottom: 10px; }
+      .cards thead tr.hd { display: none; }
+      .cards tr.flt th { display: block; width: auto; flex: 1 1 140px; padding: 0; }
       .cards tr { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
       .cards tr.st-blocked { border-left: 4px solid var(--coral); } .cards tr.st-in_progress { border-left: 4px solid var(--green); }
       .cards td { border: 0; padding: 4px 0; display: flex; gap: 10px; justify-content: space-between; align-items: center; }
@@ -66,13 +70,12 @@
           <button class="chip" data-f="next2">Next 2 weeks</button>
           <button class="chip" data-f="overdue">Overdue</button>
         </div>
-        <select id="project-filter" aria-label="Project"><option value="">All projects</option></select>
+        <button id="clear" class="ghost" hidden>Clear filters</button>
         <span class="grow"></span>
         <button id="add">+ Add task</button>
       </div>
       <div class="table-wrap cards"><table>
-        <thead><tr><th data-sort="project">Project</th><th data-sort="task">Task</th><th data-sort="dep">Depends on</th>
-          <th data-sort="week">Week</th><th data-sort="due">Target dates</th><th data-sort="status">Status</th><th></th></tr></thead>
+        <thead id="head"></thead>
         <tbody id="rows"></tbody>
       </table></div>
       <p id="count" class="muted"></p>
@@ -93,16 +96,17 @@
     <h3 id="edit-title" style="margin-top:0"></h3>
     <form id="edit-form">
       <label>Project<input name="project" list="projects" type="text"></label>
-      <label>Status<select name="status"></select></label>
+      <label>Category<input name="category" list="categories" type="text"></label>
       <label class="full">Task<textarea name="task" rows="2" required></textarea></label>
+      <label>Status<select name="status"></select></label>
       <label>Depends on<select name="depends_on"></select></label>
-      <label>Dependency note<input name="depends_note" type="text" placeholder="e.g. waiting on utility data"></label>
+      <label class="full">Dependency note<input name="depends_note" type="text" placeholder="e.g. waiting on utility data"></label>
       <label>Start date<input name="start_date" type="date"></label>
       <label>Due date<input name="due_date" type="date"></label>
       <p class="row-actions full"><button type="submit">Save</button><button type="button" class="ghost" id="edit-cancel">Cancel</button>
         <button type="button" class="danger" id="edit-delete">Delete</button></p>
     </form>
-    <datalist id="projects"></datalist>
+    <datalist id="projects"></datalist><datalist id="categories"></datalist>
   </dialog>
 
   <script type="module">
@@ -144,42 +148,63 @@
     /* workplan */
     let tasks = [], filter = 'all', sort = { key: 'week', dir: 1 }, editing = null;
     const byId = (id) => tasks.find((t) => t.id === id);
-    const sortVal = {
-      project: (t) => t.project.toLowerCase(), task: (t) => t.task.toLowerCase(), dep: (t) => (t.depends_on ? byId(t.depends_on)?.task || '' : t.depends_note).toLowerCase(),
-      week: (t) => span(t)[0] || '9999', due: (t) => span(t)[1] || '9999', status: (t) => Object.keys(STATUS).indexOf(t.status),
-    };
     const status = (t) => `<select class="status" data-id="${t.id}" aria-label="Status">${Object.entries(STATUS).map(([k, v]) =>
       `<option value="${k}"${k === t.status ? ' selected' : ''}>${v}</option>`).join('')}</select>`;
     const dep = (t) => {
       const d = t.depends_on && byId(t.depends_on);
       return [d ? `#${d.id} ${esc(d.task)}${d.status === 'complete' ? '' : ' <span class="wait">(waiting)</span>'}` : '', esc(t.depends_note)].filter(Boolean).join('<br>') || '—';
     };
+    const tag = (v) => (v ? `<span class="tag">${esc(v)}</span>` : '—');
+    /* Columns. sort = sort key; f = filter value of a task (dropdown of distinct values); text = free-text filter. Order is saved per browser. */
+    const COLS = {
+      project: { label: 'Project', sort: (t) => t.project.toLowerCase(), f: (t) => t.project, cell: (t) => tag(t.project) },
+      category: { label: 'Category', sort: (t) => (t.category || '').toLowerCase(), f: (t) => t.category || '', cell: (t) => tag(t.category) },
+      task: { label: 'Task', cls: 'task', sort: (t) => t.task.toLowerCase(), text: true, cell: (t) => esc(t.task) },
+      dep: { label: 'Depends on', sort: (t) => (t.depends_on ? byId(t.depends_on)?.task || '' : t.depends_note).toLowerCase(), cell: dep },
+      week: { label: 'Week', cls: 'nowrap', sort: (t) => span(t)[0] || '9999', f: weekLabel, cell: (t) => weekLabel(t) || '—' },
+      due: { label: 'Target dates', cls: 'dates nowrap', sort: (t) => span(t)[1] || '9999', cell: (t) => (span(t)[0] ? `${fmt(span(t)[0])} – ${fmt(span(t)[1])}` : '—') },
+      status: { label: 'Status', sort: (t) => Object.keys(STATUS).indexOf(t.status), f: (t) => t.status, show: (v) => STATUS[v], cell: status },
+    };
+    const DEFAULT = Object.keys(COLS);
+    let order = DEFAULT, flt = {};
+    try { const o = JSON.parse(localStorage.getItem('wp-cols')); if (Array.isArray(o) && o.length === DEFAULT.length && DEFAULT.every((k) => o.includes(k))) order = o; } catch {}
+    const NONE = '\u0000';
+    const optVals = (k) => {
+      const c = COLS[k], vals = [...new Set(tasks.map(c.f))];
+      return vals.sort((a, b) => (c.show ? Object.keys(STATUS).indexOf(a) - Object.keys(STATUS).indexOf(b) : String(a).localeCompare(String(b), undefined, { numeric: true })));
+    };
+    function buildHead() {
+      $('head').innerHTML = `<tr class="hd">${order.map((k) => `<th class="hd" data-sort="${k}" data-col="${k}" draggable="true" title="Click to sort, drag to move">${COLS[k].label}</th>`).join('')}<th></th></tr>
+        <tr class="flt">${order.map((k) => {
+          const c = COLS[k];
+          if (c.text) return `<th><input type="search" data-flt="${k}" placeholder="Filter…" aria-label="Filter ${c.label}" value="${esc(flt[k] || '')}"></th>`;
+          if (!c.f) return '<th></th>';
+          return `<th><select data-flt="${k}" aria-label="Filter ${c.label}"><option value="">${c.label}: all</option>${optVals(k).map((v) =>
+            `<option value="${v === '' ? NONE : esc(v)}"${(flt[k] || '') === (v === '' ? NONE : v) ? ' selected' : ''}>${v === '' ? '(none)' : esc(c.show ? c.show(v) : v)}</option>`).join('')}</select></th>`;
+        }).join('')}<th></th></tr>`;
+    }
     function render() {
       const from = ymd(wk0), to = ymd(addDays(wk0, 6)), n1 = ymd(addDays(wk0, 7)), n2 = ymd(addDays(wk0, 20));
-      const project = $('project-filter').value;
       const keep = { all: () => true, current: (t) => overlaps(t, from, to), next2: (t) => overlaps(t, n1, n2), overdue: late }[filter];
-      const list = tasks.filter((t) => keep(t) && (!project || t.project === project))
-        .sort((a, b) => { const x = sortVal[sort.key](a), y = sortVal[sort.key](b); return (x < y ? -1 : x > y ? 1 : a.id - b.id) * sort.dir; });
-      $('rows').innerHTML = list.map((t) => `<tr class="st-${t.status}${late(t) ? ' late' : ''}">
-        <td data-label="Project">${t.project ? `<span class="tag">${esc(t.project)}</span>` : '—'}</td>
-        <td class="task">${esc(t.task)}</td>
-        <td data-label="Depends on">${dep(t)}</td>
-        <td data-label="Week" class="nowrap">${weekLabel(t) || '—'}</td>
-        <td data-label="Target dates" class="dates nowrap">${span(t)[0] ? `${fmt(span(t)[0])} – ${fmt(span(t)[1])}` : '—'}</td>
-        <td data-label="Status">${status(t)}</td>
+      const colOk = (t) => Object.entries(flt).every(([k, v]) => !v || (COLS[k].text ? t.task.toLowerCase().includes(v.toLowerCase()) : (COLS[k].f(t) || NONE) === v));
+      const sv = COLS[sort.key].sort;
+      const list = tasks.filter((t) => keep(t) && colOk(t))
+        .sort((a, b) => { const x = sv(a), y = sv(b); return (x < y ? -1 : x > y ? 1 : a.id - b.id) * sort.dir; });
+      $('rows').innerHTML = list.map((t) => `<tr class="st-${t.status}${late(t) ? ' late' : ''}">${order.map((k) => {
+        const c = COLS[k]; return `<td data-label="${c.label}" class="${c.cls || ''}">${c.cell(t)}</td>`; }).join('')}
         <td><button class="ghost" data-edit="${t.id}">Edit</button></td></tr>`).join('')
-        || '<tr><td colspan="7" class="muted">No tasks in this view.</td></tr>';
+        || `<tr><td colspan="${order.length + 1}" class="muted">No tasks in this view.</td></tr>`;
       $('count').textContent = `${list.length} of ${tasks.length} tasks`;
-      document.querySelectorAll('th[data-sort]').forEach((th) => th.className = th.dataset.sort === sort.key ? (sort.dir > 0 ? 'asc' : 'desc') : '');
+      $('clear').hidden = !Object.values(flt).some(Boolean);
+      document.querySelectorAll('th[data-sort]').forEach((th) => th.className = 'hd ' + (th.dataset.sort === sort.key ? (sort.dir > 0 ? 'asc' : 'desc') : ''));
     }
     async function loadTasks() {
       tasks = await api('workplan/tasks');
-      const projects = [...new Set(tasks.map((t) => t.project).filter(Boolean))].sort();
-      const pf = $('project-filter'), keepP = pf.value;
-      pf.innerHTML = `<option value="">All projects</option>${projects.map((p) => `<option>${esc(p)}</option>`).join('')}`;
-      pf.value = projects.includes(keepP) ? keepP : '';
-      $('projects').innerHTML = projects.map((p) => `<option value="${esc(p)}">`).join('');
-      render();
+      const list = (k) => [...new Set(tasks.map((t) => t[k]).filter(Boolean))].sort();
+      $('projects').innerHTML = list('project').map((p) => `<option value="${esc(p)}">`).join('');
+      $('categories').innerHTML = list('category').map((p) => `<option value="${esc(p)}">`).join('');
+      for (const k of Object.keys(flt)) if (flt[k] && !COLS[k].text && !optVals(k).some((v) => (v || NONE) === flt[k])) delete flt[k];
+      buildHead(); render();
     }
     async function save(t) {
       try { await api('workplan/tasks' + (t.id ? `/${t.id}` : ''), { method: 'POST', body: t }); await loadTasks(); showMsg(msg, ''); }
@@ -192,11 +217,27 @@
       document.querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', c === b));
       render();
     });
-    $('project-filter').addEventListener('change', render);
-    document.querySelector('thead').addEventListener('click', (e) => {
+    const head = $('head');
+    head.addEventListener('click', (e) => {
       const k = e.target.dataset.sort; if (!k) return;
       sort = { key: k, dir: sort.key === k ? -sort.dir : 1 }; render();
     });
+    head.addEventListener('input', (e) => { const k = e.target.dataset.flt; if (k) { flt[k] = e.target.value; render(); } });
+    $('clear').addEventListener('click', () => { flt = {}; buildHead(); render(); });
+    /* drag a column header to move it */
+    let drag = null;
+    head.addEventListener('dragstart', (e) => { drag = e.target.dataset?.col; if (drag) e.dataTransfer.setData('text/plain', drag); });
+    head.addEventListener('dragover', (e) => { const th = e.target.closest('th[data-col]'); if (drag && th) { e.preventDefault(); head.querySelectorAll('.over').forEach((x) => x.classList.remove('over')); th.classList.add('over'); } });
+    head.addEventListener('drop', (e) => {
+      const to = e.target.closest('th[data-col]')?.dataset.col; e.preventDefault();
+      if (drag && to && to !== drag) {
+        const i = order.indexOf(to); order = order.filter((k) => k !== drag); order.splice(i, 0, drag);
+        try { localStorage.setItem('wp-cols', JSON.stringify(order)); } catch {}
+        buildHead(); render();
+      }
+      drag = null;
+    });
+    head.addEventListener('dragend', () => { drag = null; head.querySelectorAll('.over').forEach((x) => x.classList.remove('over')); });
     $('rows').addEventListener('change', (e) => {
       if (!e.target.matches('select.status')) return;
       save({ ...byId(Number(e.target.dataset.id)), status: e.target.value });
@@ -210,7 +251,7 @@
       $('edit-title').textContent = t ? `Edit task #${t.id}` : 'Add task';
       form.depends_on.innerHTML = '<option value="">None</option>' + tasks.filter((x) => x.id !== t?.id)
         .map((x) => `<option value="${x.id}">#${x.id} ${esc(x.task.slice(0, 60))}</option>`).join('');
-      for (const k of ['project', 'task', 'depends_note', 'start_date', 'due_date']) form[k].value = t?.[k] || '';
+      for (const k of ['project', 'category', 'task', 'depends_note', 'start_date', 'due_date']) form[k].value = t?.[k] || '';
       form.status.value = t?.status || 'not_started';
       form.depends_on.value = t?.depends_on || '';
       $('edit-delete').hidden = !t;

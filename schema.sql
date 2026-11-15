@@ -185,6 +185,7 @@ INSERT OR IGNORE INTO app_folders (app_id, folder, folder_sort) VALUES ('workpla
 CREATE TABLE IF NOT EXISTS wp_tasks (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   project      TEXT NOT NULL DEFAULT '',
+  category     TEXT NOT NULL DEFAULT '',  -- existing DBs: run once  ALTER TABLE wp_tasks ADD COLUMN category TEXT NOT NULL DEFAULT '';
   task         TEXT NOT NULL,
   depends_on   INTEGER,
   depends_note TEXT NOT NULL DEFAULT '',
