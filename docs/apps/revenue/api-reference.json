@@ -1,0 +1,441 @@
+{
+  "app": "revenue",
+  "routes": [
+    {
+      "module": "access",
+      "permission": "admin role in this app",
+      "storageTier": "static_assets",
+      "description": "This app's generated API and schema docs, for the Documentation section (admins of this app; portal admin → Documentation links here).",
+      "params": [],
+      "returns": "{{index, api, schema}} the generated index.json, api-reference.json, relationships.json",
+      "throws": [
+        "401 not signed in · 403 not an admin · 404 this app has no docs"
+      ],
+      "examples": [],
+      "handler": "appWorker",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/docs",
+      "source": "worker/app-worker.js:76"
+    },
+    {
+      "module": "access",
+      "permission": "signed-in user with a role in this app",
+      "storageTier": "external",
+      "description": "Who am I in this app: email, role and tabs from the portal (Directory binding). Every /api/* call needs an Access login and a role for the app.",
+      "params": [],
+      "returns": "{{email, role, tabs: string[], portal}}",
+      "throws": [
+        "401 not signed in · 403 no role"
+      ],
+      "examples": [],
+      "handler": "appWorker",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/me",
+      "source": "worker/app-worker.js:67"
+    },
+    {
+      "module": "customers",
+      "permission": "Revenue role (viewer, analyst or admin)",
+      "storageTier": "tier2_git",
+      "description": "Customers and their results (data/ in this repo, read through the GitHub App). ?view=<id> = one meter or group of a multi-meter customer.",
+      "params": [],
+      "returns": "{object} index rows; customer = {customer, runs, run, inputs, result}; battery = simulated sizes (streamed); bill = PDF inline",
+      "throws": [
+        "404 no such customer / meter view / file"
+      ],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/customers",
+      "source": "worker/index.js:119"
+    },
+    {
+      "module": "customers",
+      "permission": "Revenue role (viewer, analyst or admin)",
+      "storageTier": "tier2_git",
+      "description": "Customers and their results (data/ in this repo, read through the GitHub App). ?view=<id> = one meter or group of a multi-meter customer.",
+      "params": [],
+      "returns": "{object} index rows; customer = {customer, runs, run, inputs, result}; battery = simulated sizes (streamed); bill = PDF inline",
+      "throws": [
+        "404 no such customer / meter view / file"
+      ],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/customers/:id",
+      "source": "worker/index.js:119"
+    },
+    {
+      "module": "customers",
+      "permission": "Revenue role (viewer, analyst or admin)",
+      "storageTier": "tier2_git",
+      "description": "Customers and their results (data/ in this repo, read through the GitHub App). ?view=<id> = one meter or group of a multi-meter customer.",
+      "params": [],
+      "returns": "{object} index rows; customer = {customer, runs, run, inputs, result}; battery = simulated sizes (streamed); bill = PDF inline",
+      "throws": [
+        "404 no such customer / meter view / file"
+      ],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/customers/:id/battery",
+      "source": "worker/index.js:119"
+    },
+    {
+      "module": "customers",
+      "permission": "Revenue role (viewer, analyst or admin)",
+      "storageTier": "tier2_git",
+      "description": "Customers and their results (data/ in this repo, read through the GitHub App). ?view=<id> = one meter or group of a multi-meter customer.",
+      "params": [],
+      "returns": "{object} index rows; customer = {customer, runs, run, inputs, result}; battery = simulated sizes (streamed); bill = PDF inline",
+      "throws": [
+        "404 no such customer / meter view / file"
+      ],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/customers/:id/bills/:file.pdf",
+      "source": "worker/index.js:119"
+    },
+    {
+      "module": "customers",
+      "permission": "Revenue tab export",
+      "storageTier": "tier2_git",
+      "description": "Downloads: a customer's workbook or PDF, portfolios (all, per group).",
+      "params": [],
+      "returns": "{Response} file download (streamed from GitHub, not held in memory)",
+      "throws": [
+        "403 no export tab · 404 not built yet"
+      ],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/customers/:id/export.pdf",
+      "source": "worker/index.js:133"
+    },
+    {
+      "module": "customers",
+      "permission": "Revenue tab export",
+      "storageTier": "tier2_git",
+      "description": "Downloads: a customer's workbook or PDF, portfolios (all, per group).",
+      "params": [],
+      "returns": "{Response} file download (streamed from GitHub, not held in memory)",
+      "throws": [
+        "403 no export tab · 404 not built yet"
+      ],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/customers/:id/export.xlsx",
+      "source": "worker/index.js:133"
+    },
+    {
+      "module": "customers",
+      "permission": "Revenue tab export",
+      "storageTier": "tier2_git",
+      "description": "Downloads: a customer's workbook or PDF, portfolios (all, per group).",
+      "params": [],
+      "returns": "{Response} file download (streamed from GitHub, not held in memory)",
+      "throws": [
+        "403 no export tab · 404 not built yet"
+      ],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/export/portfolio.xlsx",
+      "source": "worker/index.js:133"
+    },
+    {
+      "module": "customers",
+      "permission": "Revenue role (viewer, analyst or admin)",
+      "storageTier": "tier2_git",
+      "description": "Customers and their results (data/ in this repo, read through the GitHub App). ?view=<id> = one meter or group of a multi-meter customer.",
+      "params": [],
+      "returns": "{object} index rows; customer = {customer, runs, run, inputs, result}; battery = simulated sizes (streamed); bill = PDF inline",
+      "throws": [
+        "404 no such customer / meter view / file"
+      ],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/groups",
+      "source": "worker/index.js:119"
+    },
+    {
+      "module": "customers",
+      "permission": "Revenue tab export",
+      "storageTier": "tier2_git",
+      "description": "Downloads: a customer's workbook or PDF, portfolios (all, per group).",
+      "params": [],
+      "returns": "{Response} file download (streamed from GitHub, not held in memory)",
+      "throws": [
+        "403 no export tab · 404 not built yet"
+      ],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/groups/:group/portfolio.xlsx",
+      "source": "worker/index.js:133"
+    },
+    {
+      "module": "jobs",
+      "permission": "Revenue tab analyze",
+      "storageTier": "tier2_git tier3_files external",
+      "description": "Run analyses: upload a file (one git blob each), then start a job; the Analyze GitHub Action runs the Python engine and commits the results. Change settings (group, battery) or delete a customer the same way.",
+      "params": [
+        "{object} body upload: base64 text of one file; analyze: {files: [{name, id}], customer_id?, group?, options}; PUT: {group | options}"
+      ],
+      "returns": "{{id}|{job}|object} blob id, job id, or job status {status, log}",
+      "throws": [
+        "400 no files · 403 tab missing · 503 repository busy / not configured"
+      ],
+      "examples": [
+        "POST /api/analyze {\"files\":[{\"name\":\"bill.pdf\",\"id\":\"<blob sha>\"}],\"group\":\"default\"}"
+      ],
+      "handler": "api",
+      "kind": "http",
+      "method": "POST",
+      "path": "/api/analyze",
+      "source": "worker/index.js:156"
+    },
+    {
+      "module": "jobs",
+      "permission": "Revenue role",
+      "storageTier": "tier2_git tier3_files external",
+      "description": "Run analyses: upload a file (one git blob each), then start a job; the Analyze GitHub Action runs the Python engine and commits the results. Change settings (group, battery) or delete a customer the same way.",
+      "params": [
+        "{object} body upload: base64 text of one file; analyze: {files: [{name, id}], customer_id?, group?, options}; PUT: {group | options}"
+      ],
+      "returns": "{{id}|{job}|object} blob id, job id, or job status {status, log}",
+      "throws": [
+        "400 no files · 403 tab missing · 503 repository busy / not configured"
+      ],
+      "examples": [
+        "POST /api/analyze {\"files\":[{\"name\":\"bill.pdf\",\"id\":\"<blob sha>\"}],\"group\":\"default\"}"
+      ],
+      "handler": "api",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/config",
+      "source": "worker/index.js:156"
+    },
+    {
+      "module": "jobs",
+      "permission": "Revenue tab admin",
+      "storageTier": "tier2_git tier3_files external",
+      "description": "Run analyses: upload a file (one git blob each), then start a job; the Analyze GitHub Action runs the Python engine and commits the results. Change settings (group, battery) or delete a customer the same way.",
+      "params": [
+        "{object} body upload: base64 text of one file; analyze: {files: [{name, id}], customer_id?, group?, options}; PUT: {group | options}"
+      ],
+      "returns": "{{id}|{job}|object} blob id, job id, or job status {status, log}",
+      "throws": [
+        "400 no files · 403 tab missing · 503 repository busy / not configured"
+      ],
+      "examples": [
+        "POST /api/analyze {\"files\":[{\"name\":\"bill.pdf\",\"id\":\"<blob sha>\"}],\"group\":\"default\"}"
+      ],
+      "handler": "api",
+      "kind": "http",
+      "method": "DELETE",
+      "path": "/api/customers/:id",
+      "source": "worker/index.js:156"
+    },
+    {
+      "module": "jobs",
+      "permission": "Revenue tab analyze",
+      "storageTier": "tier2_git tier3_files external",
+      "description": "Run analyses: upload a file (one git blob each), then start a job; the Analyze GitHub Action runs the Python engine and commits the results. Change settings (group, battery) or delete a customer the same way.",
+      "params": [
+        "{object} body upload: base64 text of one file; analyze: {files: [{name, id}], customer_id?, group?, options}; PUT: {group | options}"
+      ],
+      "returns": "{{id}|{job}|object} blob id, job id, or job status {status, log}",
+      "throws": [
+        "400 no files · 403 tab missing · 503 repository busy / not configured"
+      ],
+      "examples": [
+        "POST /api/analyze {\"files\":[{\"name\":\"bill.pdf\",\"id\":\"<blob sha>\"}],\"group\":\"default\"}"
+      ],
+      "handler": "api",
+      "kind": "http",
+      "method": "PUT",
+      "path": "/api/customers/:id",
+      "source": "worker/index.js:156"
+    },
+    {
+      "module": "jobs",
+      "permission": "Revenue tab analyze",
+      "storageTier": "tier2_git tier3_files external",
+      "description": "Run analyses: upload a file (one git blob each), then start a job; the Analyze GitHub Action runs the Python engine and commits the results. Change settings (group, battery) or delete a customer the same way.",
+      "params": [
+        "{object} body upload: base64 text of one file; analyze: {files: [{name, id}], customer_id?, group?, options}; PUT: {group | options}"
+      ],
+      "returns": "{{id}|{job}|object} blob id, job id, or job status {status, log}",
+      "throws": [
+        "400 no files · 403 tab missing · 503 repository busy / not configured"
+      ],
+      "examples": [
+        "POST /api/analyze {\"files\":[{\"name\":\"bill.pdf\",\"id\":\"<blob sha>\"}],\"group\":\"default\"}"
+      ],
+      "handler": "api",
+      "kind": "http",
+      "method": "POST",
+      "path": "/api/customers/:id/rerun",
+      "source": "worker/index.js:156"
+    },
+    {
+      "module": "jobs",
+      "permission": "Revenue tab analyze (Drive: one upload link per file; the browser uploads straight to Drive)",
+      "storageTier": "tier2_git tier3_files external",
+      "description": "Run analyses: upload a file (one git blob each), then start a job; the Analyze GitHub Action runs the Python engine and commits the results. Change settings (group, battery) or delete a customer the same way.",
+      "params": [
+        "{object} body upload: base64 text of one file; analyze: {files: [{name, id}], customer_id?, group?, options}; PUT: {group | options}"
+      ],
+      "returns": "{{id}|{job}|object} blob id, job id, or job status {status, log}",
+      "throws": [
+        "400 no files · 403 tab missing · 503 repository busy / not configured"
+      ],
+      "examples": [
+        "POST /api/analyze {\"files\":[{\"name\":\"bill.pdf\",\"id\":\"<blob sha>\"}],\"group\":\"default\"}"
+      ],
+      "handler": "api",
+      "kind": "http",
+      "method": "POST",
+      "path": "/api/jobs",
+      "source": "worker/index.js:156"
+    },
+    {
+      "module": "jobs",
+      "permission": "Revenue role",
+      "storageTier": "tier2_git tier3_files external",
+      "description": "Run analyses: upload a file (one git blob each), then start a job; the Analyze GitHub Action runs the Python engine and commits the results. Change settings (group, battery) or delete a customer the same way.",
+      "params": [
+        "{object} body upload: base64 text of one file; analyze: {files: [{name, id}], customer_id?, group?, options}; PUT: {group | options}"
+      ],
+      "returns": "{{id}|{job}|object} blob id, job id, or job status {status, log}",
+      "throws": [
+        "400 no files · 403 tab missing · 503 repository busy / not configured"
+      ],
+      "examples": [
+        "POST /api/analyze {\"files\":[{\"name\":\"bill.pdf\",\"id\":\"<blob sha>\"}],\"group\":\"default\"}"
+      ],
+      "handler": "api",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/jobs/:id",
+      "source": "worker/index.js:156"
+    },
+    {
+      "module": "jobs",
+      "permission": "Revenue tab analyze (Drive: job.json + start the Analyze Action)",
+      "storageTier": "tier2_git tier3_files external",
+      "description": "Run analyses: upload a file (one git blob each), then start a job; the Analyze GitHub Action runs the Python engine and commits the results. Change settings (group, battery) or delete a customer the same way.",
+      "params": [
+        "{object} body upload: base64 text of one file; analyze: {files: [{name, id}], customer_id?, group?, options}; PUT: {group | options}"
+      ],
+      "returns": "{{id}|{job}|object} blob id, job id, or job status {status, log}",
+      "throws": [
+        "400 no files · 403 tab missing · 503 repository busy / not configured"
+      ],
+      "examples": [
+        "POST /api/analyze {\"files\":[{\"name\":\"bill.pdf\",\"id\":\"<blob sha>\"}],\"group\":\"default\"}"
+      ],
+      "handler": "api",
+      "kind": "http",
+      "method": "POST",
+      "path": "/api/jobs/:id/start",
+      "source": "worker/index.js:156"
+    },
+    {
+      "module": "jobs",
+      "permission": "Revenue tab analyze",
+      "storageTier": "tier2_git tier3_files external",
+      "description": "Run analyses: upload a file (one git blob each), then start a job; the Analyze GitHub Action runs the Python engine and commits the results. Change settings (group, battery) or delete a customer the same way.",
+      "params": [
+        "{object} body upload: base64 text of one file; analyze: {files: [{name, id}], customer_id?, group?, options}; PUT: {group | options}"
+      ],
+      "returns": "{{id}|{job}|object} blob id, job id, or job status {status, log}",
+      "throws": [
+        "400 no files · 403 tab missing · 503 repository busy / not configured"
+      ],
+      "examples": [
+        "POST /api/analyze {\"files\":[{\"name\":\"bill.pdf\",\"id\":\"<blob sha>\"}],\"group\":\"default\"}"
+      ],
+      "handler": "api",
+      "kind": "http",
+      "method": "POST",
+      "path": "/api/upload",
+      "source": "worker/index.js:156"
+    },
+    {
+      "module": "utilities",
+      "permission": "Revenue role",
+      "storageTier": "tier2_git",
+      "description": "Tariffs learned from bills, by utility and rate schedule.",
+      "params": [],
+      "returns": "{object|Response} schedule list, tariff detail, or workbook",
+      "throws": [],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/utilities",
+      "source": "worker/index.js:145"
+    },
+    {
+      "module": "utilities",
+      "permission": "export tab",
+      "storageTier": "tier2_git",
+      "description": "Tariffs learned from bills, by utility and rate schedule.",
+      "params": [],
+      "returns": "{object|Response} schedule list, tariff detail, or workbook",
+      "throws": [],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/utilities/:code/:schedule",
+      "source": "worker/index.js:145"
+    },
+    {
+      "module": "utilities",
+      "permission": "export tab",
+      "storageTier": "tier2_git",
+      "description": "Tariffs learned from bills, by utility and rate schedule.",
+      "params": [],
+      "returns": "{object|Response} schedule list, tariff detail, or workbook",
+      "throws": [],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/utilities/:code/:schedule/export.xlsx",
+      "source": "worker/index.js:145"
+    },
+    {
+      "module": "utilities",
+      "permission": "export tab",
+      "storageTier": "tier2_git",
+      "description": "Tariffs learned from bills, by utility and rate schedule.",
+      "params": [],
+      "returns": "{object|Response} schedule list, tariff detail, or workbook",
+      "throws": [],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/utilities/master.xlsx",
+      "source": "worker/index.js:145"
+    }
+  ]
+}

@@ -152,7 +152,21 @@
 /* ---------- phone: sidebar becomes a top bar; tables marked .cards become cards ---------- */
 
 /* ---------- docs: FG.docs Javadoc-style API / schema viewer ---------- */
-.fg-docs { max-width: 1100px; }
+.fg-docs { max-width: 1400px; }
+.fg-docs-layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 20px; align-items: start; }
+.fg-docs-nav { position: sticky; top: 8px; max-height: calc(100vh - 24px); overflow-y: auto; border-right: 1px solid var(--fg-line); padding-right: 8px; }
+.fg-doc-app { margin: 0 0 6px; } .fg-doc-app > summary { cursor: pointer; font-weight: 700; padding: 6px 8px; border-radius: var(--fg-radius); }
+.fg-doc-app > summary:hover { background: var(--fg-hover); }
+.fg-doc-nav { display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; text-align: left; background: none; border: 0; border-radius: var(--fg-radius);
+  padding: 5px 8px 5px 18px; font: inherit; font-size: 14px; color: var(--fg-ink); cursor: pointer; }
+.fg-doc-nav:hover { background: var(--fg-hover); } .fg-doc-nav.on { background: var(--fg-ice); color: var(--fg-accent-ink); font-weight: 600; }
+.fg-docs-main h3 { font-size: 20px; margin: 4px 0 8px; } .fg-docs-main h3 small { font-size: 14px; font-weight: 400; color: var(--fg-muted); margin-left: 6px; }
+.fg-doc-sub { margin: 22px 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; border-bottom: 2px solid var(--fg-ice); padding-bottom: 4px; }
+.fg-doc-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-top: 12px; }
+.fg-doc-card { display: flex; flex-direction: column; gap: 4px; text-align: left; font: inherit; border: 1px solid var(--fg-line); border-radius: 8px; padding: 10px 12px; background: var(--fg-card); color: var(--fg-ink); cursor: pointer; }
+.fg-doc-card:hover { border-color: var(--fg-green); } .fg-doc-card small { color: var(--fg-muted); }
+.fg-doc-store { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; font-size: 13px; } .fg-doc-store dd { margin: 0; }
+@media (max-width: 760px) { .fg-docs-layout { grid-template-columns: 1fr; } .fg-docs-nav { position: static; max-height: 240px; border-right: 0; border-bottom: 1px solid var(--fg-line); padding: 0 0 8px; } }
 .fg-docs-head h2 { margin: 6px 0 4px; font-size: 22px; }
 .fg-docs-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0 16px; }
 .fg-docs-bar input { flex: 1 1 220px; min-width: 0; font: inherit; padding: 6px 10px; border: 1px solid var(--fg-line); border-radius: var(--fg-radius); background: var(--fg-card); color: var(--fg-ink); }

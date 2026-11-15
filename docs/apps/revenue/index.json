@@ -1,0 +1,65 @@
+{
+  "app": "revenue",
+  "name": "Revenue analysis (rev-anal.fortifygrid.com)",
+  "repo": "Fortify-Grid/revenue-analysis-module",
+  "sources": {
+    "api": [
+      "worker/index.js",
+      "worker/app-worker.js"
+    ],
+    "schema": []
+  },
+  "counts": {
+    "modules": 4,
+    "routes": 24,
+    "rpc": 0,
+    "tables": 0,
+    "foreignKeys": 0
+  },
+  "modules": [
+    {
+      "id": "access",
+      "label": "Login and role check (shared app-worker.js, portal Directory)",
+      "ui": [],
+      "routes": 2,
+      "tables": []
+    },
+    {
+      "id": "customers",
+      "label": "Customers: bills, rebuilt bills, interval data, sizing results, downloads",
+      "ui": [
+        "web/app.js (customers, customer, overview, billsTab, charges, intervalTab, batteryTab, tests, files)",
+        "web/charts.js",
+        "web/battery.js"
+      ],
+      "routes": 9,
+      "tables": []
+    },
+    {
+      "id": "jobs",
+      "label": "Uploads and analysis jobs (GitHub Action runs the Python engine); with Drive the browser uploads straight to Drive",
+      "ui": [
+        "web/app.js (newAnalysis, watchJob)"
+      ],
+      "routes": 9,
+      "tables": []
+    },
+    {
+      "id": "utilities",
+      "label": "Tariffs learned per utility and rate schedule",
+      "ui": [
+        "web/app.js (utilities, utility, rateTab)"
+      ],
+      "routes": 4,
+      "tables": []
+    }
+  ],
+  "files": [
+    "index.json",
+    "api-reference.json",
+    "api-reference.md",
+    "relationships.json",
+    "schema-erd.md",
+    "architecture.md"
+  ]
+}

@@ -1,0 +1,396 @@
+{
+  "app": "ide",
+  "routes": [
+    {
+      "module": "access",
+      "permission": "IDE admin",
+      "storageTier": "static_assets",
+      "description": "This app's generated API and schema docs (home → Documentation; admin → Documentation links here).",
+      "params": [],
+      "returns": "{{index, api, schema}} docs/ide index.json, api-reference.json, relationships.json",
+      "throws": [
+        "403 admins only"
+      ],
+      "examples": [],
+      "handler": "db",
+      "kind": "http",
+      "method": "GET",
+      "path": "/ide/db/docs",
+      "source": "app/worker/index.js:200"
+    },
+    {
+      "module": "access",
+      "permission": "any IDE role",
+      "storageTier": "external",
+      "description": "Who am I: email and IDE role (from the portal).",
+      "params": [],
+      "returns": "{{email, role}}",
+      "throws": [
+        "401 not signed in or no IDE access"
+      ],
+      "examples": [],
+      "handler": "db",
+      "kind": "http",
+      "method": "GET",
+      "path": "/ide/db/me",
+      "source": "app/worker/index.js:191"
+    },
+    {
+      "module": "home",
+      "permission": "any IDE role reads; engineer / admin write",
+      "storageTier": "tier1_d1",
+      "description": "Workflow and shared boards: rows changed since a time (polled every 4 s); POST saves up to 500 rows.",
+      "params": [
+        "{number} since query: ms; rows saved after it",
+        "{object} body {rows: [{id, kind: node|edge|config, data, deleted}]}"
+      ],
+      "returns": "{{now, rows}} / {now, saved}",
+      "throws": [
+        "400 bad rows"
+      ],
+      "examples": [],
+      "handler": "db",
+      "kind": "http",
+      "method": "GET",
+      "path": "/ide/db/board/:board",
+      "source": "app/worker/index.js:231"
+    },
+    {
+      "module": "home",
+      "permission": "any IDE role reads; engineer / admin write",
+      "storageTier": "tier1_d1",
+      "description": "Workflow and shared boards: rows changed since a time (polled every 4 s); POST saves up to 500 rows.",
+      "params": [
+        "{number} since query: ms; rows saved after it",
+        "{object} body {rows: [{id, kind: node|edge|config, data, deleted}]}"
+      ],
+      "returns": "{{now, rows}} / {now, saved}",
+      "throws": [
+        "400 bad rows"
+      ],
+      "examples": [],
+      "handler": "db",
+      "kind": "http",
+      "method": "POST",
+      "path": "/ide/db/board/:board",
+      "source": "app/worker/index.js:231"
+    },
+    {
+      "module": "home",
+      "permission": "any IDE role reads; engineer / admin write",
+      "storageTier": "tier1_d1",
+      "description": "Images in requirements: GET serves one (cached a year), POST stores the raw image body.",
+      "params": [
+        "{Blob} body JPEG / PNG / WebP / GIF under 1.5 MB (content-type header = its type)"
+      ],
+      "returns": "{{id}} on POST; the image on GET",
+      "throws": [
+        "400 wrong type or too big · 404 no such image"
+      ],
+      "examples": [],
+      "handler": "db",
+      "kind": "http",
+      "method": "POST",
+      "path": "/ide/db/img",
+      "source": "app/worker/index.js:220"
+    },
+    {
+      "module": "home",
+      "permission": "any IDE role reads; engineer / admin write",
+      "storageTier": "tier1_d1",
+      "description": "Images in requirements: GET serves one (cached a year), POST stores the raw image body.",
+      "params": [
+        "{Blob} body JPEG / PNG / WebP / GIF under 1.5 MB (content-type header = its type)"
+      ],
+      "returns": "{{id}} on POST; the image on GET",
+      "throws": [
+        "400 wrong type or too big · 404 no such image"
+      ],
+      "examples": [],
+      "handler": "db",
+      "kind": "http",
+      "method": "GET",
+      "path": "/ide/db/img/:id",
+      "source": "app/worker/index.js:220"
+    },
+    {
+      "module": "home",
+      "permission": "any IDE role reads; engineer / admin write",
+      "storageTier": "tier1_d1",
+      "description": "Projects made with the New project form. DELETE hides one (kept as deleted).",
+      "params": [
+        "{object} body form inputs {name, acBlocks, acBlockMW, dcBlocks, dcBlockMWh, market, poiKV, …}"
+      ],
+      "returns": "{object[]} [{id, name, params, by, at}] / {id}",
+      "throws": [
+        "400 bad id or no name · 404 not found"
+      ],
+      "examples": [],
+      "handler": "db",
+      "kind": "http",
+      "method": "GET",
+      "path": "/ide/db/projects",
+      "source": "app/worker/index.js:243"
+    },
+    {
+      "module": "home",
+      "permission": "any IDE role reads; engineer / admin write",
+      "storageTier": "tier1_d1",
+      "description": "Projects made with the New project form. DELETE hides one (kept as deleted).",
+      "params": [
+        "{object} body form inputs {name, acBlocks, acBlockMW, dcBlocks, dcBlockMWh, market, poiKV, …}"
+      ],
+      "returns": "{object[]} [{id, name, params, by, at}] / {id}",
+      "throws": [
+        "400 bad id or no name · 404 not found"
+      ],
+      "examples": [],
+      "handler": "db",
+      "kind": "http",
+      "method": "DELETE",
+      "path": "/ide/db/projects/:id",
+      "source": "app/worker/index.js:243"
+    },
+    {
+      "module": "home",
+      "permission": "any IDE role reads; engineer / admin write",
+      "storageTier": "tier1_d1",
+      "description": "Projects made with the New project form. DELETE hides one (kept as deleted).",
+      "params": [
+        "{object} body form inputs {name, acBlocks, acBlockMW, dcBlocks, dcBlockMWh, market, poiKV, …}"
+      ],
+      "returns": "{object[]} [{id, name, params, by, at}] / {id}",
+      "throws": [
+        "400 bad id or no name · 404 not found"
+      ],
+      "examples": [],
+      "handler": "db",
+      "kind": "http",
+      "method": "GET",
+      "path": "/ide/db/projects/:id",
+      "source": "app/worker/index.js:243"
+    },
+    {
+      "module": "home",
+      "permission": "any IDE role reads; engineer / admin write",
+      "storageTier": "tier1_d1",
+      "description": "Projects made with the New project form. DELETE hides one (kept as deleted).",
+      "params": [
+        "{object} body form inputs {name, acBlocks, acBlockMW, dcBlocks, dcBlockMWh, market, poiKV, …}"
+      ],
+      "returns": "{object[]} [{id, name, params, by, at}] / {id}",
+      "throws": [
+        "400 bad id or no name · 404 not found"
+      ],
+      "examples": [],
+      "handler": "db",
+      "kind": "http",
+      "method": "PUT",
+      "path": "/ide/db/projects/:id",
+      "source": "app/worker/index.js:243"
+    },
+    {
+      "module": "home",
+      "permission": "any IDE role reads; engineer / admin write",
+      "storageTier": "tier1_d1",
+      "description": "Requirements sections: newest version of each. PUT saves a new version (base = the at you loaded).",
+      "params": [
+        "{object} body {body: Markdown ≤ 200 kB, base}"
+      ],
+      "returns": "{object[]} [{id, body, by, at}] / the saved row",
+      "throws": [
+        "400 bad section · 403 view only · 409 saved by someone else meanwhile"
+      ],
+      "examples": [],
+      "handler": "db",
+      "kind": "http",
+      "method": "GET",
+      "path": "/ide/db/sections",
+      "source": "app/worker/index.js:209"
+    },
+    {
+      "module": "home",
+      "permission": "any IDE role reads; engineer / admin write",
+      "storageTier": "tier1_d1",
+      "description": "Requirements sections: newest version of each. PUT saves a new version (base = the at you loaded).",
+      "params": [
+        "{object} body {body: Markdown ≤ 200 kB, base}"
+      ],
+      "returns": "{object[]} [{id, body, by, at}] / the saved row",
+      "throws": [
+        "400 bad section · 403 view only · 409 saved by someone else meanwhile"
+      ],
+      "examples": [],
+      "handler": "db",
+      "kind": "http",
+      "method": "PUT",
+      "path": "/ide/db/sections/:id",
+      "source": "app/worker/index.js:209"
+    },
+    {
+      "module": "model",
+      "permission": "any IDE role",
+      "storageTier": "tier1_d1",
+      "description": "My rights on a project: edit (object properties), route (cables and trenches), manage (permissions).",
+      "params": [],
+      "returns": "{{caps: string[], role, email}}",
+      "throws": [
+        "400 bad project id"
+      ],
+      "examples": [],
+      "handler": "model",
+      "kind": "http",
+      "method": "GET",
+      "path": "/ide/db/caps/:project",
+      "source": "app/worker/index.js:79"
+    },
+    {
+      "module": "model",
+      "permission": "any IDE role reads; edit or route right writes",
+      "storageTier": "tier1_d1",
+      "description": "Model edits per project: property overrides and drawn cables / trenches. Drawn objects need the route right, property edits the edit right. DELETE leaves a tombstone.",
+      "params": [
+        "{object} body {data: {props} | {obj}, base} (≤ 100 kB)"
+      ],
+      "returns": "{object[]} [{tag, data, deleted, by, at}] / the saved row",
+      "throws": [
+        "400 bad tag or too large · 403 no right · 409 changed by someone else meanwhile"
+      ],
+      "examples": [],
+      "handler": "model",
+      "kind": "http",
+      "method": "GET",
+      "path": "/ide/db/edits/:project",
+      "source": "app/worker/index.js:111"
+    },
+    {
+      "module": "model",
+      "permission": "any IDE role reads; edit or route right writes",
+      "storageTier": "tier1_d1",
+      "description": "Model edits per project: property overrides and drawn cables / trenches. Drawn objects need the route right, property edits the edit right. DELETE leaves a tombstone.",
+      "params": [
+        "{object} body {data: {props} | {obj}, base} (≤ 100 kB)"
+      ],
+      "returns": "{object[]} [{tag, data, deleted, by, at}] / the saved row",
+      "throws": [
+        "400 bad tag or too large · 403 no right · 409 changed by someone else meanwhile"
+      ],
+      "examples": [],
+      "handler": "model",
+      "kind": "http",
+      "method": "DELETE",
+      "path": "/ide/db/edits/:project/:tag",
+      "source": "app/worker/index.js:111"
+    },
+    {
+      "module": "model",
+      "permission": "any IDE role reads; edit or route right writes",
+      "storageTier": "tier1_d1",
+      "description": "Model edits per project: property overrides and drawn cables / trenches. Drawn objects need the route right, property edits the edit right. DELETE leaves a tombstone.",
+      "params": [
+        "{object} body {data: {props} | {obj}, base} (≤ 100 kB)"
+      ],
+      "returns": "{object[]} [{tag, data, deleted, by, at}] / the saved row",
+      "throws": [
+        "400 bad tag or too large · 403 no right · 409 changed by someone else meanwhile"
+      ],
+      "examples": [],
+      "handler": "model",
+      "kind": "http",
+      "method": "PUT",
+      "path": "/ide/db/edits/:project/:tag",
+      "source": "app/worker/index.js:111"
+    },
+    {
+      "module": "model",
+      "permission": "manage on the project (IDE admins always)",
+      "storageTier": "tier1_d1 external",
+      "description": "Per-project permissions: everyone with IDE access (portal Directory.users) with their rights; set or clear an override.",
+      "params": [
+        "{object} body {email, caps: ('edit'|'route'|'manage')[] | null} (null = back to role defaults)"
+      ],
+      "returns": "{object[]} [{email, name, role, seen, override, all, caps, by, at}] / {ok: true}",
+      "throws": [
+        "400 bad email · 403 no manage right"
+      ],
+      "examples": [],
+      "handler": "model",
+      "kind": "http",
+      "method": "GET",
+      "path": "/ide/db/perms/:project",
+      "source": "app/worker/index.js:88"
+    },
+    {
+      "module": "model",
+      "permission": "manage on the project (IDE admins always)",
+      "storageTier": "tier1_d1 external",
+      "description": "Per-project permissions: everyone with IDE access (portal Directory.users) with their rights; set or clear an override.",
+      "params": [
+        "{object} body {email, caps: ('edit'|'route'|'manage')[] | null} (null = back to role defaults)"
+      ],
+      "returns": "{object[]} [{email, name, role, seen, override, all, caps, by, at}] / {ok: true}",
+      "throws": [
+        "400 bad email · 403 no manage right"
+      ],
+      "examples": [],
+      "handler": "model",
+      "kind": "http",
+      "method": "PUT",
+      "path": "/ide/db/perms/:project",
+      "source": "app/worker/index.js:88"
+    },
+    {
+      "module": "model",
+      "permission": "any IDE role reads; edit right writes",
+      "storageTier": "tier1_d1",
+      "description": "Sheet markup and saved CAD drawings (sheet cad:<name>) per project. A save sends the at it loaded (base); someone else's newer save is a conflict.",
+      "params": [
+        "{object} body {data, base} (data ≤ 500 kB as JSON)"
+      ],
+      "returns": "{object[]} [{sheet, data, by, at}] / the saved row",
+      "throws": [
+        "400 bad sheet or too much markup · 403 no edit right · 409 saved by someone else meanwhile"
+      ],
+      "examples": [],
+      "handler": "model",
+      "kind": "http",
+      "method": "GET",
+      "path": "/ide/db/sheets/:project",
+      "source": "app/worker/index.js:99"
+    },
+    {
+      "module": "model",
+      "permission": "any IDE role reads; edit right writes",
+      "storageTier": "tier1_d1",
+      "description": "Sheet markup and saved CAD drawings (sheet cad:<name>) per project. A save sends the at it loaded (base); someone else's newer save is a conflict.",
+      "params": [
+        "{object} body {data, base} (data ≤ 500 kB as JSON)"
+      ],
+      "returns": "{object[]} [{sheet, data, by, at}] / the saved row",
+      "throws": [
+        "400 bad sheet or too much markup · 403 no edit right · 409 saved by someone else meanwhile"
+      ],
+      "examples": [],
+      "handler": "model",
+      "kind": "http",
+      "method": "PUT",
+      "path": "/ide/db/sheets/:project/:sheet",
+      "source": "app/worker/index.js:99"
+    },
+    {
+      "module": "static",
+      "permission": "IDE role (checked by the portal)",
+      "storageTier": "static_assets",
+      "description": "The web app and engine-published data. Reached only through the portal (it checks sign-in and the IDE role; /ide/files/* also needs the downloads tab), which forwards app.fortifygrid.com/ide/* here.",
+      "params": [],
+      "returns": "the file: index.html, assets, projects/<id>/*.json, files/<id>/*",
+      "throws": [],
+      "examples": [],
+      "handler": "",
+      "kind": "http",
+      "method": "GET",
+      "path": "/ide/*",
+      "source": "app/worker/index.js:329"
+    }
+  ]
+}

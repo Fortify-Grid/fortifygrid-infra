@@ -35,7 +35,7 @@
       FG.configure({ app: 'portal', user: me.email });
       FG.shell(document.getElementById('side'), {
         app: 'portal', name: 'FortifyGrid', icon: '/assets/planner-192.png', home: '/', user: me.email, current: 'apps',
-        sections: [{ id: 'apps', label: 'Your apps', href: '/' }, ...(me.admin ? [{ id: 'admin', label: 'Admin', href: '/admin/' }, { id: 'docs', label: 'Docs & schema', href: '/admin/#docs' }] : [])],
+        sections: [{ id: 'apps', label: 'Your apps', href: '/' }, ...(me.admin ? [{ id: 'admin', label: 'Admin', href: '/admin/' }] : [])],
       });
       if (me.notice) showMsg(document.getElementById('notice'), me.notice);
       // Apps grouped into folders (admin → Apps → Folder); folders in folder_sort order, "Other apps" last. Each person can fold / reorder.
@@ -46,11 +46,9 @@
         folders.get(name).push(a);
       }
       let html = [...folders].map(([name, apps]) => folder(name, apps.map(tile).join(''), apps.length)).join('');
-      // Admin tools: users/apps, UI theme colours, API + schema docs. Admins only.
+      // One Admin tile: users, apps and folders, UI theme colours, API + schema documentation, activity. Admins only.
       if (me.admin) {
-        html += folder('Admin', `<a class="tile" href="/admin/"><h2>Admin</h2><p class="muted">Users, apps, roles and tab access.</p><span class="role">admin</span></a>
-          <a class="tile" href="/admin/#settings"><h2>UI &amp; theme colours</h2><p class="muted">Change the colours every app uses.</p><span class="role">admin</span></a>
-          <a class="tile" href="/admin/#docs"><h2>API &amp; schema docs</h2><p class="muted">Routes, database tables and relationships.</p><span class="role">admin</span></a>`, 3);
+        html += folder('Admin', `<a class="tile" href="/admin/"><h2>Admin</h2><p class="muted">Users and access, apps and folders, UI theme colours, API and schema documentation.</p><span class="role">admin</span></a>`, 1);
       }
       // The staged website (next version of fortifygrid.com) is kept apart from the apps; admins only.
       if (me.admin) {

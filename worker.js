@@ -17,6 +17,13 @@ import { WorkerEntrypoint } from 'cloudflare:workers';
 import docsIndex from './docs/portal/index.json';
 import docsApi from './docs/portal/api-reference.json';
 import docsSchema from './docs/portal/relationships.json';
+// Other apps' generated docs, copied in by platform/tools/sync-app-docs.mjs (their own repos generate them).
+import ideIndex from './docs/apps/ide/index.json';
+import ideApi from './docs/apps/ide/api-reference.json';
+import ideSchema from './docs/apps/ide/relationships.json';
+import revIndex from './docs/apps/revenue/index.json';
+import revApi from './docs/apps/revenue/api-reference.json';
+import revSchema from './docs/apps/revenue/relationships.json';
 
 const now = () => new Date().toISOString();
 const normEmail = (e) => String(e || '').trim().toLowerCase();
@@ -287,6 +294,21 @@ async function deleteUser(env, actor, email) {
 
 /* ---------- Admin: apps ---------- */
 
+async function saveFolders(env, actor, body) {
+  const r = body.rename;
+  if (r) {
+    const to = String(r.to || '').trim().slice(0, 60);
+    if (!to) throw new HttpError(400, 'Folder name cannot be empty.');
+    await env.DB.prepare('UPDATE app_folders SET folder = ? WHERE folder = ?').bind(to, String(r.from || '')).run();
+    await audit(env, actor.email, 'rename folder', String(r.from || ''), to);
+  }
+  if (Array.isArray(body.order)) {
+    await env.DB.batch(body.order.map((name, i) => env.DB.prepare('UPDATE app_folders SET folder_sort = ? WHERE folder = ?').bind((i + 1) * 10, String(name))));
+    await audit(env, actor.email, 'order folders', '', body.order.join(', ').slice(0, 300));
+  }
+  return { ok: true };
+}
+
 async function saveApp(env, actor, body) {
   const id = String(body.id || '').trim().toLowerCase();
   if (!APP_ID_RE.test(id)) throw new HttpError(400, 'App id: lowercase letters, digits, dashes (e.g. "heatmap").');
@@ -317,8 +339,10 @@ async function saveApp(env, actor, body) {
   // Folder = the dashboard section the tile sits in. Folders sort by the lowest folder_sort among their apps.
   const folder = String(body.folder ?? existing?.folder ?? '').trim().slice(0, 60);
   if (folder) {
-    const folderSort = Number(body.folder_sort ?? existing?.folder_sort ?? (await env.DB.prepare(
-      'SELECT MIN(folder_sort) AS s FROM app_folders WHERE folder = ?').bind(folder).first())?.s ?? 100);
+    // Same folder keeps its position; moving into a folder takes that folder's position; a brand-new folder goes last.
+    const target = (await env.DB.prepare('SELECT MIN(folder_sort) AS s FROM app_folders WHERE folder = ?').bind(folder).first())?.s;
+    const last = (await env.DB.prepare('SELECT MAX(folder_sort) AS s FROM app_folders').first())?.s;
+    const folderSort = Number(body.folder_sort ?? (existing?.folder === folder ? existing.folder_sort : null) ?? target ?? (last == null ? 10 : last + 10));
     await env.DB.prepare(`INSERT INTO app_folders (app_id, folder, folder_sort) VALUES (?, ?, ?)
         ON CONFLICT(app_id) DO UPDATE SET folder = excluded.folder, folder_sort = excluded.folder_sort`).bind(id, folder, folderSort).run();
   } else {
@@ -681,6 +705,16 @@ async function workplanApi(req, env, user, path, method) {
  * @throws 400 bad id, URL or roles · 404 no such app
  */
 /**
+ * Dashboard folders: rename a folder, or set the order folders appear in (apps move between folders via POST /api/admin/apps).
+ * @module portal
+ * @route POST /api/admin/folders
+ * @permission portal admin
+ * @storageTier tier1_d1
+ * @param {object} body {rename: {from, to}} and/or {order: string[]} (folder names, first on top)
+ * @returns {{ok: true}}
+ * @throws 400 empty or too-long name
+ */
+/**
  * Site settings (e.g. dashboard_notice). theme_main / theme_accent1 / theme_accent2 = #rrggbb colours for every app.
  * @module portal
  * @route POST /api/admin/settings
@@ -710,7 +744,7 @@ async function workplanApi(req, env, user, path, method) {
  * @module access
  * @route GET /api/admin/docs portal admin
  * @storageTier static_assets
- * @returns {{index, api, schema}} the files in docs/portal (index.json, api-reference.json, relationships.json)
+ * @returns {{index, api, schema, apps: {index, api, schema}[]}} the portal's own files in docs/portal, and `apps`: those plus the IDE and Revenue docs
  * @throws 403 Admins only
  */
 async function api(req, env, url) {
@@ -761,6 +795,7 @@ async function api(req, env, url) {
       return json({ ok: true, invite });
     }
   }
+  if (resource === 'folders' && method === 'POST' && !id) return json(await saveFolders(env, user, body));
   if (resource === 'apps' && method === 'POST' && !id) return json(await saveApp(env, user, body));
   if (resource === 'apps' && method === 'POST' && id && sub === 'tabs') return json(await saveTabs(env, user, id, body));
   if (resource === 'settings') {
@@ -772,7 +807,11 @@ async function api(req, env, url) {
     await audit(env, user.email, 'sync', '', sync.note);
     return json(sync);
   }
-  if (resource === 'docs' && method === 'GET' && !id) return json({ index: docsIndex, api: docsApi, schema: docsSchema });
+  if (resource === 'docs' && method === 'GET' && !id) {
+    const mine = { index: docsIndex, api: docsApi, schema: docsSchema };
+    // `index`/`api`/`schema` stay the portal's own (old shape); `apps` lists every app for the left-hand navigation.
+    return json({ ...mine, apps: [mine, { index: ideIndex, api: ideApi, schema: ideSchema }, { index: revIndex, api: revApi, schema: revSchema }] });
+  }
   if (resource === 'audit' && method === 'GET') {
     const { results } = await env.DB.prepare('SELECT * FROM audit ORDER BY id DESC LIMIT 300').all();
     return json(results);

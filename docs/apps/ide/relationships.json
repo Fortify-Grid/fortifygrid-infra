@@ -1,0 +1,466 @@
+{
+  "app": "ide",
+  "tables": {
+    "board": {
+      "name": "board",
+      "module": "home",
+      "storageTier": "tier1_d1",
+      "description": "Workflow board and shared requirement / tracker boards: one row per box, link or config; deleted = tombstone.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "board",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": "main, req, reqs, stack, arch …"
+        },
+        {
+          "name": "kind",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": "node, edge or config"
+        },
+        {
+          "name": "data",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": "JSON"
+        },
+        {
+          "name": "deleted",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": "0",
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "by",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "at",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "indexes": [
+        "board_at (board, at)"
+      ],
+      "source": "app/schema.sql:35"
+    },
+    "edits": {
+      "name": "edits",
+      "module": "model",
+      "storageTier": "tier1_d1",
+      "description": "Model edits per project: property overrides ({props}) and drawn cables / trenches ({obj}); deleted = tombstone.",
+      "columns": [
+        {
+          "name": "project",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "tag",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": "object tag"
+        },
+        {
+          "name": "data",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": "JSON"
+        },
+        {
+          "name": "deleted",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": "0",
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "by",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "at",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        }
+      ],
+      "primaryKey": [
+        "project",
+        "tag"
+      ],
+      "indexes": [],
+      "source": "app/schema.sql:67"
+    },
+    "images": {
+      "name": "images",
+      "module": "home",
+      "storageTier": "tier1_d1",
+      "description": "Images pasted into requirements (JPEG / PNG / WebP / GIF under 1.5 MB), served at db/img/<id>.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true,
+          "unique": false,
+          "description": "random UUID"
+        },
+        {
+          "name": "type",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": "MIME type"
+        },
+        {
+          "name": "data",
+          "type": "BLOB",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "by",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "at",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "indexes": [],
+      "source": "app/schema.sql:22"
+    },
+    "perms": {
+      "name": "perms",
+      "module": "model",
+      "storageTier": "tier1_d1",
+      "description": "Per user and project ('*' = all) IDE rights: edit, route, manage. No row = defaults from the portal role.",
+      "columns": [
+        {
+          "name": "project",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "email",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": "portal user"
+        },
+        {
+          "name": "caps",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": "JSON array: edit, route, manage"
+        },
+        {
+          "name": "by",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "at",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        }
+      ],
+      "primaryKey": [
+        "project",
+        "email"
+      ],
+      "indexes": [],
+      "source": "app/schema.sql:84"
+    },
+    "projects": {
+      "name": "projects",
+      "module": "home",
+      "storageTier": "tier1_d1",
+      "description": "Projects from the New project form: their inputs (blocks, FTM / BTM, kV, location); the model is generated in the browser.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "params",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": "JSON form inputs"
+        },
+        {
+          "name": "deleted",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": "0",
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "by",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "at",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "indexes": [],
+      "source": "app/schema.sql:51"
+    },
+    "sections": {
+      "name": "sections",
+      "module": "home",
+      "storageTier": "tier1_d1",
+      "description": "Requirements document sections; one row per save, newest row per id is current.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": "section id"
+        },
+        {
+          "name": "body",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": "Markdown"
+        },
+        {
+          "name": "by",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": "editor email"
+        },
+        {
+          "name": "at",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": "saved, ms since epoch"
+        }
+      ],
+      "primaryKey": [],
+      "indexes": [
+        "sections_id_at (id, at)"
+      ],
+      "source": "app/schema.sql:9"
+    },
+    "sheets": {
+      "name": "sheets",
+      "module": "model",
+      "storageTier": "tier1_d1",
+      "description": "Sheet markup and saved CAD drawings (cad:<name>) per project; a save checks nobody saved since.",
+      "columns": [
+        {
+          "name": "project",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "sheet",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": "engine sheet id, model:<doc> or cad:<name>"
+        },
+        {
+          "name": "data",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": "JSON"
+        },
+        {
+          "name": "by",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "at",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        }
+      ],
+      "primaryKey": [
+        "project",
+        "sheet"
+      ],
+      "indexes": [],
+      "source": "app/schema.sql:100"
+    }
+  },
+  "foreignKeys": [
+    {
+      "from": "edits.project",
+      "to": "projects.id",
+      "cardinality": "N:1",
+      "enforced": false,
+      "note": "or a published engine project id"
+    },
+    {
+      "from": "perms.project",
+      "to": "projects.id",
+      "cardinality": "N:1",
+      "enforced": false,
+      "note": "or '*' or a published engine project id"
+    },
+    {
+      "from": "sheets.project",
+      "to": "projects.id",
+      "cardinality": "N:1",
+      "enforced": false,
+      "note": "or a published engine project id"
+    }
+  ]
+}

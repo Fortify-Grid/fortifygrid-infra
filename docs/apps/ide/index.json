@@ -1,0 +1,80 @@
+{
+  "app": "ide",
+  "name": "Plant IDE (app.fortifygrid.com/ide/)",
+  "repo": "Fortify-Grid/fortifygrid-ide",
+  "sources": {
+    "api": [
+      "app/worker/index.js"
+    ],
+    "schema": [
+      "app/schema.sql"
+    ]
+  },
+  "counts": {
+    "modules": 4,
+    "routes": 21,
+    "rpc": 0,
+    "tables": 7,
+    "foreignKeys": 3
+  },
+  "modules": [
+    {
+      "id": "access",
+      "label": "Sign-in (portal service binding), role, admin documentation",
+      "ui": [
+        "app/src/main.tsx"
+      ],
+      "routes": 2,
+      "tables": []
+    },
+    {
+      "id": "home",
+      "label": "IDE home page: requirements, images, workflow board, created projects",
+      "ui": [
+        "app/src/home/"
+      ],
+      "routes": 10,
+      "tables": [
+        "board",
+        "images",
+        "projects",
+        "sections"
+      ]
+    },
+    {
+      "id": "model",
+      "label": "Plant viewer: model edits, per-project permissions, sheet markup and CAD drawings",
+      "ui": [
+        "app/src/App.tsx",
+        "app/src/ui/",
+        "app/src/core/edits.ts",
+        "app/src/pdf/",
+        "app/src/cad/"
+      ],
+      "routes": 8,
+      "tables": [
+        "edits",
+        "perms",
+        "sheets"
+      ]
+    },
+    {
+      "id": "static",
+      "label": "The web app and published engine data (projects/, files/)",
+      "ui": [
+        "app/index.html",
+        "app/public/"
+      ],
+      "routes": 1,
+      "tables": []
+    }
+  ],
+  "files": [
+    "index.json",
+    "api-reference.json",
+    "api-reference.md",
+    "relationships.json",
+    "schema-erd.md",
+    "architecture.md"
+  ]
+}

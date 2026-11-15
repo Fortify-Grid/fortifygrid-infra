@@ -322,9 +322,9 @@
   };
 
   /* ---------- docs: Javadoc-style API and schema viewer (admin Documentation pages) ----------
-     FG.docs(box, { url } | { data }) — data = { index, api, schema }: the three JSON files `npm run docs` writes
-     (index.json, api-reference.json, relationships.json). url returns that object. Search, module filter,
-     API / Tables views; foreign keys link to their table. */
+     FG.docs(box, { url } | { data }) — data = { index, api, schema } (one app: the three JSON files `npm run docs` writes)
+     or { apps: [{ index, api, schema }, …] } (many apps). Left bar: app → Overview / modules; the main pane shows that
+     module's API routes and database tables. Search covers every app. Foreign keys link to their table. */
   FG.docs = async (box, o) => {
     box.classList.add('fg-docs');
     box.innerHTML = '<p class="fg-muted">Loading documentation…</p>';
@@ -332,13 +332,16 @@
     try {
       if (!d) { const r = await fetch(o.url, { credentials: 'same-origin' }); if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message || `HTTP ${r.status}`); d = await r.json(); }
     } catch (e) { box.innerHTML = `<p class="fg-docs-err">Could not load documentation: ${esc(e.message)}</p>`; return; }
-    const idx = d.index || {}, routes = d.api?.routes || [], tables = d.schema?.tables || {}, fks = d.schema?.foreignKeys || [];
-    const mods = (idx.modules || []).map((m) => m.id);
-    const label = Object.fromEntries((idx.modules || []).map((m) => [m.id, m.label]));
-    const st = { q: '', mod: '', view: 'api' };
-    const tid = (t) => `fg-doc-t-${t}`;
+    const apps = (d.apps || [d]).map((a) => ({
+      id: a.index?.app || 'app', name: a.index?.name || a.index?.app || 'App', idx: a.index || {}, routes: a.api?.routes || [],
+      tables: a.schema?.tables || {}, fks: a.schema?.foreignKeys || [], mods: a.index?.modules || [],
+    }));
+    const st = { app: apps[0]?.id, mod: '', q: '' };
+    const tid = (a, t) => `fg-doc-t-${a}-${t}`;
+    const cur = () => apps.find((a) => a.id === st.app) || apps[0];
     const list = (xs) => (xs?.length ? `<ul>${xs.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '');
-    const hit = (txt) => !st.q || txt.toLowerCase().includes(st.q);
+    const tablesOf = (a, m) => Object.values(a.tables).filter((t) => t.module === m);
+    const routesOf = (a, m) => a.routes.filter((r) => r.module === m);
     const route = (r) => `<article class="fg-doc"><h4><span class="fg-doc-m ${esc(r.method)}">${esc(r.method)}</span><code>${esc(r.path)}</code></h4>
       <p>${esc(r.description)}</p><dl>
       ${r.permission ? `<dt>Permission</dt><dd>${esc(r.permission)}</dd>` : ''}
@@ -347,10 +350,10 @@
       ${r.throws?.length ? `<dt>Errors</dt><dd>${list(r.throws)}</dd>` : ''}
       ${r.storageTier ? `<dt>Storage</dt><dd>${esc(r.storageTier)}</dd>` : ''}
       <dt>Source</dt><dd><code>${esc(r.source)}</code> · module ${esc(r.module)}</dd></dl></article>`;
-    const fkLink = (ref) => { const t = ref.split('.')[0]; return tables[t] ? `<a href="#${tid(t)}" data-t="${esc(t)}">${esc(ref)}</a>` : esc(ref); };
-    const table = (t) => {
-      const out = fks.filter((f) => f.from.split('.')[0] === t.name), inn = fks.filter((f) => f.to.split('.')[0] === t.name);
-      return `<article class="fg-doc" id="${tid(t.name)}"><h4><code>${esc(t.name)}</code> <small>${esc(t.module)} · ${esc(t.storageTier || '')}</small></h4>
+    const table = (a, t) => {
+      const fkLink = (ref) => { const n = ref.split('.')[0]; return a.tables[n] ? `<a href="#${tid(a.id, n)}" data-app="${esc(a.id)}" data-t="${esc(n)}">${esc(ref)}</a>` : esc(ref); };
+      const out = a.fks.filter((f) => f.from.split('.')[0] === t.name), inn = a.fks.filter((f) => f.to.split('.')[0] === t.name);
+      return `<article class="fg-doc" id="${tid(a.id, t.name)}"><h4><code>${esc(t.name)}</code> <small>${esc(t.module)} · ${esc(t.storageTier || '')}</small></h4>
       <p>${esc(t.description)}</p><div class="fg-doc-cols"><table><thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Null</th><th>Default</th><th>Notes</th></tr></thead><tbody>
       ${t.columns.map((c) => { const f = out.find((x) => x.from === `${t.name}.${c.name}`);
         return `<tr><td><code>${esc(c.name)}</code></td><td>${esc(c.type)}</td><td>${[c.primaryKey || t.primaryKey?.includes(c.name) ? 'PK' : '', c.unique ? 'UQ' : '', f ? 'FK' : ''].filter(Boolean).join(' ')}</td>
@@ -360,30 +363,53 @@
       ${t.indexes?.length ? `<p class="fg-muted">Indexes: ${t.indexes.map((i) => esc(typeof i === 'string' ? i : `${i.name || ''} (${(i.columns || []).join(', ')})`)).join(' · ')}</p>` : ''}
       <p class="fg-muted"><code>${esc(t.source)}</code></p></article>`;
     };
-    const draw = () => {
-      const rs = routes.filter((r) => (!st.mod || r.module === st.mod) && hit(`${r.method} ${r.path} ${r.description} ${r.permission}`));
-      const ts = Object.values(tables).filter((t) => (!st.mod || t.module === st.mod) && hit(`${t.name} ${t.description} ${t.columns.map((c) => c.name).join(' ')}`));
-      const groups = [...new Set([...mods, ...(st.view === 'api' ? rs : ts).map((x) => x.module)])];
-      const items = st.view === 'api' ? rs : ts;
-      body.innerHTML = items.length ? groups.map((m) => { const g = items.filter((x) => x.module === m); if (!g.length) return '';
-        return `<section class="fg-doc-mod"><h3>${esc(m)} <small>${esc(label[m] || '')}</small></h3>${g.map(st.view === 'api' ? route : table).join('')}</section>`; }).join('')
-        : `<p class="fg-muted">${st.view === 'tables' && !Object.keys(tables).length ? 'This app has no database tables (its data lives in files or another service; see the API).' : `${st.view === 'api' ? 'No routes' : 'No tables'} match.`}</p>`;
-      box.querySelectorAll('[data-view]').forEach((b) => b.classList.toggle('on', b.dataset.view === st.view));
+    const none = (what, a) => `<p class="fg-muted">${what === 'tables' && !Object.keys(a.tables).length
+      ? 'This app has no database tables (its data lives in files or another service; see the API).' : `No ${what} in this module.`}</p>`;
+    const modBody = (a, m) => {
+      const mod = a.mods.find((x) => x.id === m) || { id: m, label: '' };
+      const rs = routesOf(a, m), ts = tablesOf(a, m);
+      return `<h3>${esc(mod.id)} <small>${esc(mod.label || '')}</small></h3>
+        ${mod.ui?.length ? `<p class="fg-muted">Screens: ${mod.ui.map((u) => `<code>${esc(u)}</code>`).join(', ')}</p>` : ''}
+        <h4 class="fg-doc-sub">API routes <span class="fg-badge">${rs.length}</span></h4>${rs.length ? rs.map(route).join('') : none('routes', a)}
+        <h4 class="fg-doc-sub">Database tables <span class="fg-badge">${ts.length}</span></h4>${ts.length ? ts.map((t) => table(a, t)).join('') : none('tables', a)}`;
     };
-    const c = idx.counts || {};
-    box.innerHTML = `<div class="fg-docs-head"><h2>${esc(idx.name || idx.app || 'Documentation')}</h2>
-      <p class="fg-muted">${idx.repo ? `Repo ${esc(idx.repo)} · ` : ''}${c.routes ?? routes.length} routes${c.rpc ? ` (+${c.rpc} RPC)` : ''} · ${c.tables ?? Object.keys(tables).length} tables · ${c.foreignKeys ?? fks.length} links. Generated from code annotations by <code>npm run docs</code>.</p>
-      <div class="fg-docs-bar"><span class="fg-seg"><button type="button" data-view="api">API</button><button type="button" data-view="tables">Tables</button></span>
-      <select aria-label="Module"><option value="">All modules</option>${mods.map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join('')}</select>
-      <input type="search" placeholder="Search routes, tables, columns" aria-label="Search documentation"></div></div><div class="fg-docs-body"></div>`;
-    const body = box.querySelector('.fg-docs-body');
-    box.querySelector('.fg-docs-bar').addEventListener('click', (e) => { const b = e.target.closest('[data-view]'); if (b) { st.view = b.dataset.view; draw(); } });
-    box.querySelector('select').addEventListener('change', (e) => { st.mod = e.target.value; draw(); });
+    const overview = (a) => {
+      const c = a.idx.counts || {}, sto = a.idx.storage || {};
+      return `<h3>${esc(a.name)}</h3><p class="fg-muted">${a.idx.repo ? `Repo ${esc(a.idx.repo)} · ` : ''}${c.routes ?? a.routes.length} routes${c.rpc ? ` (+${c.rpc} RPC)` : ''} · ${c.tables ?? Object.keys(a.tables).length} tables · ${c.foreignKeys ?? a.fks.length} links.</p>
+        <div class="fg-doc-cards">${a.mods.map((m) => `<button type="button" class="fg-doc-card" data-app="${esc(a.id)}" data-mod="${esc(m.id)}"><b>${esc(m.id)}</b>
+          <span>${esc(m.label || '')}</span><small>${routesOf(a, m.id).length} routes · ${tablesOf(a, m.id).length} tables</small></button>`).join('')}</div>
+        ${Object.keys(sto).length ? `<h4 class="fg-doc-sub">Where data is stored</h4><dl class="fg-doc-store">${Object.entries(sto).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` : ''}`;
+    };
+    const search = () => {
+      const q = st.q; let n = 0;
+      const out = apps.map((a) => {
+        const rs = a.routes.filter((r) => `${r.method} ${r.path} ${r.description} ${r.permission}`.toLowerCase().includes(q));
+        const ts = Object.values(a.tables).filter((t) => `${t.name} ${t.description} ${t.columns.map((c) => c.name).join(' ')}`.toLowerCase().includes(q));
+        n += rs.length + ts.length;
+        return rs.length + ts.length ? `<h3>${esc(a.name)}</h3>${rs.map(route).join('')}${ts.map((t) => table(a, t)).join('')}` : '';
+      }).join('');
+      return n ? `<p class="fg-muted">${n} match${n > 1 ? 'es' : ''} in all apps.</p>${out}` : '<p class="fg-muted">Nothing matches.</p>';
+    };
+    const nav = () => apps.map((a) => `<details class="fg-doc-app" ${a.id === st.app ? 'open' : ''}><summary>${esc(a.name.replace(/\s*\(.*$/, ''))}</summary>
+      <button type="button" class="fg-doc-nav${a.id === st.app && !st.mod ? ' on' : ''}" data-app="${esc(a.id)}" data-mod="">Overview</button>
+      ${a.mods.map((m) => `<button type="button" class="fg-doc-nav${a.id === st.app && st.mod === m.id ? ' on' : ''}" data-app="${esc(a.id)}" data-mod="${esc(m.id)}">${esc(m.id)}
+        <span class="fg-badge" title="${routesOf(a, m.id).length} routes · ${tablesOf(a, m.id).length} tables">${routesOf(a, m.id).length}·${tablesOf(a, m.id).length}</span></button>`).join('')}</details>`).join('');
+    box.innerHTML = `<div class="fg-docs-layout"><nav class="fg-docs-nav" aria-label="Documentation"></nav><div class="fg-docs-main">
+      <div class="fg-docs-bar"><input type="search" placeholder="Search routes, tables, columns in all apps" aria-label="Search documentation"><span class="fg-muted">badge = routes·tables</span></div>
+      <div class="fg-docs-body"></div></div></div>`;
+    const navEl = box.querySelector('.fg-docs-nav'), body = box.querySelector('.fg-docs-body');
+    const draw = () => {
+      navEl.innerHTML = nav();
+      const a = cur();
+      body.innerHTML = st.q ? search() : st.mod ? modBody(a, st.mod) : overview(a);
+    };
+    const go = (app, mod) => { st.app = app; st.mod = mod || ''; st.q = ''; box.querySelector('input').value = ''; draw(); box.scrollIntoView?.({ block: 'nearest' }); };
+    box.addEventListener('click', (e) => {
+      const t = e.target.closest('a[data-t]');
+      if (t) { e.preventDefault(); const a = apps.find((x) => x.id === t.dataset.app); go(a.id, a.tables[t.dataset.t]?.module); document.getElementById(tid(a.id, t.dataset.t))?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+      const b = e.target.closest('[data-app][data-mod]'); if (b) go(b.dataset.app, b.dataset.mod);
+    });
     box.querySelector('input').addEventListener('input', (e) => { st.q = e.target.value.trim().toLowerCase(); draw(); });
-    body.addEventListener('click', (e) => { const a = e.target.closest('a[data-t]'); if (!a) return; e.preventDefault();
-      if (st.view !== 'tables' || st.q || st.mod) { st.view = 'tables'; st.q = ''; st.mod = ''; box.querySelector('input').value = ''; box.querySelector('select').value = ''; draw(); }
-      document.getElementById(tid(a.dataset.t))?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
-    if (!routes.length && Object.keys(tables).length) st.view = 'tables';
     draw();
   };
 })();

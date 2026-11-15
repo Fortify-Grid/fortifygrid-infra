@@ -46,6 +46,11 @@
         <label class="check"><input type="checkbox" name="provision" checked> Create Cloudflare Access</label>
         <button type="submit">Add / update app</button>
       </form>
+      <h3>Folders</h3>
+      <p class="muted">Folders group the app tiles on the dashboard. Reorder or rename them here; move an app with the Folder dropdown in the table below (choose “＋ New folder…” to define one).</p>
+      <div id="folder-list"></div>
+      <p class="row-actions"><button class="ghost" id="folder-new">＋ New folder</button></p>
+      <h3>Apps</h3>
       <div id="apps"></div>
       <div id="tabs-editor" hidden>
         <h3 id="tabs-title"></h3>
@@ -77,9 +82,8 @@
     </section>
 
     <section data-panel="docs" hidden>
-      <p class="muted">API routes and database tables of every app, generated from code annotations (<code>npm run docs</code>; CI fails if they are stale).
-        Each app also has its own Documentation section, for its admins.</p>
-      <div class="fg-bar"><label>App <select id="docs-app"></select></label><a id="docs-open" target="_blank" rel="noopener" hidden>Open in the app ↗</a></div>
+      <p class="muted">API routes and database tables, generated from code annotations (<code>npm run docs</code>; CI fails if they are stale). Pick an app, then a module, in the left list.
+        Portal, IDE and Revenue are included; the RAG apps (heatmap, query) have no generated docs yet.</p>
       <div id="docs-box"></div>
     </section>
 
@@ -111,19 +115,12 @@
       if (name === 'docs') showDocs();
     }
 
-    /* documentation: this portal's docs inline; other apps' docs open in that app (its own /api/docs needs its login) */
+    /* documentation: every app's generated docs, browsed from the left list (app → module) */
+    let docsShown = false;
     function showDocs() {
-      const sel = $('docs-app');
-      if (!sel.options.length) {
-        sel.innerHTML = '<option value="portal">Portal, admin, Planner</option>' + state.apps.filter((a) => a.id !== 'portal' && a.url)
-          .map((a) => `<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('');
-        sel.addEventListener('change', showDocs);
-      }
-      const app = state.apps.find((a) => a.id === sel.value);
-      const link = $('docs-open');
-      if (!app) { link.hidden = true; FG.docs($('docs-box'), { url: '/api/admin/docs' }); return; }
-      link.hidden = false; link.href = `${app.url.replace(/#.*$/, '')}#docs`;
-      $('docs-box').innerHTML = `<p>${esc(app.name)} keeps its documentation in its own Documentation section (admins of that app). <a href="${esc(link.href)}" target="_blank" rel="noopener">Open ${esc(app.name)} → Documentation ↗</a></p>`;
+      if (docsShown) return;
+      docsShown = true;
+      FG.docs($('docs-box'), { url: '/api/admin/docs' });
     }
     addEventListener('hashchange', () => showTab(location.hash.slice(1) || 'users'));
 
@@ -181,7 +178,7 @@
       tables.apps ||= FG.table($('apps'), { key: 'apps', cards: true, empty: 'No apps yet.', id: (a) => a.id, cols: [
         { key: 'app', label: 'App', main: true, sort: (a) => a.name.toLowerCase(), text: (a) => `${a.name} ${a.id} ${a.description}`,
           cell: (a) => `<b>${esc(a.name)}</b><br><span class="muted">${esc(a.id)} · ${esc(a.description)}</span>` },
-        { key: 'folder', label: 'Folder', sort: (a) => a.folder, f: (a) => a.folder, cell: (a) => esc(a.folder) || '<span class="muted">—</span>' },
+        { key: 'folder', label: 'Folder', sort: (a) => a.folder, f: (a) => a.folder, cell: (a) => `<select data-act="move" aria-label="Folder for ${esc(a.name)}"><option value="">— none —</option>${folderNames().map((f) => `<option value="${esc(f)}"${f === a.folder ? ' selected' : ''}>${esc(f)}</option>`).join('')}<option value="__new">＋ New folder…</option></select>` },
         { key: 'url', label: 'URL', sort: (a) => a.url, cell: (a) => `<a href="${esc(a.url)}">${esc(a.url)}</a>` },
         { key: 'roles', label: 'Roles', cell: (a) => esc(a.roles.join(', ')) },
         { key: 'access', label: 'Cloudflare Access', f: (a) => (a.access_aud ? 'ready' : 'not set up'),
@@ -191,7 +188,8 @@
       ] });
       tables.apps.setRows(state.apps);
 
-      $('folders').innerHTML = [...new Set(state.apps.map((a) => a.folder).filter(Boolean))].map((f) => `<option value="${esc(f)}">`).join('');
+      $('folders').innerHTML = folderNames().map((f) => `<option value="${esc(f)}">`).join('');
+      drawFolders();
       tables.settings ||= FG.table($('settings'), { key: 'settings', cards: true, empty: 'No settings yet.', id: (x) => x.key, cols: [
         { key: 'key', label: 'Key', main: true, sort: (x) => x.key, text: (x) => x.key, cell: (x) => `<code>${esc(x.key)}</code>` },
         { key: 'value', label: 'Value', text: (x) => x.value, cell: (x) => esc(x.value) },
@@ -265,6 +263,42 @@
       showMsg(msg, r.note, r.synced ? 'ok' : 'err');
     }));
 
+    /* folders: dashboard groups. A folder exists while an app is in it; “New folder” names one before its first app arrives. */
+    const extraFolders = [];
+    const folderNames = () => {
+      const seen = new Map();
+      for (const a of [...state.apps].sort((x, y) => (x.folder ? x.folder_sort : 1e9) - (y.folder ? y.folder_sort : 1e9))) if (a.folder && !seen.has(a.folder)) seen.set(a.folder, 1);
+      for (const f of extraFolders) if (!seen.has(f)) seen.set(f, 1);
+      return [...seen.keys()];
+    };
+    function drawFolders() {
+      const names = folderNames();
+      $('folder-list').innerHTML = names.length ? `<div class="fg-table-wrap"><table class="fg-table"><tbody>${names.map((f, i) => {
+        const inside = state.apps.filter((a) => a.folder === f);
+        return `<tr data-folder="${esc(f)}"><td><b>${esc(f)}</b></td><td class="muted">${inside.length ? esc(inside.map((a) => a.name).join(', ')) : 'empty: move an app here'}</td>
+          <td class="nowrap"><span class="row-actions"><button class="ghost" data-f="up"${i ? '' : ' disabled'} aria-label="Move up">▲</button><button class="ghost" data-f="down"${i < names.length - 1 ? '' : ' disabled'} aria-label="Move down">▼</button><button class="ghost" data-f="rename">Rename</button></span></td></tr>`;
+      }).join('')}</tbody></table></div>` : '<p class="muted">No folders yet.</p>';
+    }
+    $('folder-new').addEventListener('click', () => {
+      const n = (prompt('New folder name') || '').trim().slice(0, 60);
+      if (n && !folderNames().includes(n)) { extraFolders.push(n); drawFolders(); tables.apps?.setRows(state.apps); showMsg(msg, `Folder “${n}” added. Pick it in an app's Folder dropdown to put an app in it.`, 'ok'); }
+    });
+    $('folder-list').addEventListener('click', run(async (e) => {
+      const act = e.target.dataset.f; if (!act) return;
+      const f = e.target.closest('tr').dataset.folder, names = folderNames(), i = names.indexOf(f);
+      if (act === 'rename') {
+        const to = (prompt('Rename folder', f) || '').trim();
+        if (!to || to === f) return;
+        await api('admin/folders', { method: 'POST', body: { rename: { from: f, to } } });
+        const k = extraFolders.indexOf(f); if (k >= 0) extraFolders[k] = to;
+      } else {
+        const j = act === 'up' ? i - 1 : i + 1;
+        [names[i], names[j]] = [names[j], names[i]];
+        await api('admin/folders', { method: 'POST', body: { order: names } });
+      }
+      await load();
+    }));
+
     /* apps */
     const appBody = (a, extra = {}) => ({ id: a.id, name: a.name, url: a.url, roles: a.roles.join(','), description: a.description, enabled: a.enabled, sort: a.sort, folder: a.folder, ...extra });
     $('add-app').addEventListener('submit', run(async (e) => {
@@ -294,8 +328,15 @@
       }
     }));
     $('apps').addEventListener('change', run(async (e) => {
-      if (e.target.dataset.act !== 'toggle') return;
       const a = state.apps.find((x) => x.id === e.target.closest('tr').dataset.id);
+      if (e.target.dataset.act === 'move') {
+        let to = e.target.value;
+        if (to === '__new') { to = (prompt('New folder name') || '').trim().slice(0, 60); if (!to) { await load(); return; } }
+        report(await api('admin/apps', { method: 'POST', body: appBody(a, { folder: to, folder_sort: undefined }) }), `${a.name} moved to ${to || 'no folder'}.`);
+        await load();
+        return;
+      }
+      if (e.target.dataset.act !== 'toggle') return;
       report(await api('admin/apps', { method: 'POST', body: appBody(a, { enabled: e.target.checked }) }), `${a.name} ${e.target.checked ? 'enabled' : 'disabled'}.`);
       await load();
     }));
