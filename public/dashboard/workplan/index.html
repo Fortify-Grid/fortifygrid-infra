@@ -291,9 +291,6 @@
     });
     async function loadTasks() {
       tasks = await api('workplan/tasks');
-      const list = (k) => [...new Set(tasks.map((t) => t[k]).filter(Boolean))].sort();
-      $('projects').innerHTML = list('project').map((p) => `<option value="${esc(p)}">`).join('');
-      $('categories').innerHTML = list('category').map((p) => `<option value="${esc(p)}">`).join('');
       for (const k of Object.keys(flt)) if (flt[k] && !COLS[k].text && !optVals(k).some((v) => (v || NONE) === flt[k])) delete flt[k];
       picked = new Set([...picked].filter(byId));
       buildHead(); render(); renderTodo();
@@ -322,7 +319,7 @@
     $('unsel').addEventListener('click', () => { picked.clear(); render(); });
     const bf = $('bulk-form');
     bf.status.innerHTML = '<option value="">— no change —</option>' + Object.entries(STATUS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
-    $('bulk').addEventListener('click', () => { bf.reset(); $('bulk-title').textContent = `Edit ${picked.size} selected task${picked.size > 1 ? 's' : ''}`; $('bulk-dlg').showModal(); });
+    $('bulk').addEventListener('click', () => { fillOptions(ws, null); bf.reset(); $('bulk-title').textContent = `Edit ${picked.size} selected task${picked.size > 1 ? 's' : ''}`; $('bulk-dlg').showModal(); });
     $('bulk-cancel').addEventListener('click', () => $('bulk-dlg').close());
     bf.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -354,11 +351,20 @@
     /* add / edit dialog */
     const form = $('edit-form');
     form.status.innerHTML = Object.entries(STATUS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+    /* Suggestions (Project, Category, Depends on) come only from open tasks in the chosen workstream, not completed or other-workstream ones. */
+    function fillOptions(wsId, t) {
+      const open = tasks.filter((x) => x.workstream_id === wsId && x.status !== 'complete');
+      const uniq = (k) => [...new Set(open.map((x) => x[k]).filter(Boolean))].sort().map((v) => `<option value="${esc(v)}">`).join('');
+      $('projects').innerHTML = uniq('project'); $('categories').innerHTML = uniq('category');
+      const deps = open.filter((x) => x.id !== t?.id), cur = t?.depends_on && byId(t.depends_on);
+      if (cur && !deps.includes(cur)) deps.push(cur);   /* keep an existing dependency even if it is complete */
+      form.depends_on.innerHTML = '<option value="">None</option>' + deps.map((x) => `<option value="${x.id}">#${x.id} ${esc(x.task.slice(0, 60))}</option>`).join('');
+    }
+    form.workstream_id.addEventListener('change', () => { const d = form.depends_on.value; fillOptions(Number(form.workstream_id.value), editing); form.depends_on.value = [...form.depends_on.options].some((o) => o.value === d) ? d : ''; });
     function openEdit(t) {
       editing = t;
       $('edit-title').textContent = t ? `Edit task #${t.id}` : 'Add task';
-      form.depends_on.innerHTML = '<option value="">None</option>' + tasks.filter((x) => x.id !== t?.id)
-        .map((x) => `<option value="${x.id}">#${x.id} ${esc(x.task.slice(0, 60))}</option>`).join('');
+      fillOptions(t?.workstream_id || ws, t);
       form.workstream_id.value = t?.workstream_id || ws;
       for (const k of ['project', 'category', 'task', 'depends_note', 'start_date', 'due_date']) form[k].value = t?.[k] || '';
       form.status.value = t?.status || 'not_started';
