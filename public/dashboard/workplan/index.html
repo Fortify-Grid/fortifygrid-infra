@@ -175,7 +175,7 @@
     const COLS = {
       project: { label: 'Project', sort: (t) => t.project.toLowerCase(), f: (t) => t.project, cell: (t) => tag(t.project) },
       category: { label: 'Category', sort: (t) => (t.category || '').toLowerCase(), f: (t) => t.category || '', cell: (t) => tag(t.category) },
-      task: { label: 'Task', cls: 'task', sort: (t) => t.task.toLowerCase(), text: true, cell: (t) => esc(t.task) },
+      task: { label: 'Task', cls: 'task', sort: (t) => t.task.toLowerCase(), text: true, cell: (t) => esc(t.task) + (t.status === 'complete' && t.completed_at ? ` <span class="muted" style="font-size:12px;font-weight:400">· removed in ${Math.max(0, 30 - Math.floor((Date.now() - Date.parse(t.completed_at)) / 864e5))}d</span>` : '') },
       dep: { label: 'Depends on', sort: (t) => (t.depends_on ? byId(t.depends_on)?.task || '' : t.depends_note).toLowerCase(), cell: dep },
       week: { label: 'Week', cls: 'nowrap', sort: (t) => span(t)[0] || '9999', f: weekLabel, cell: (t) => weekLabel(t) || '—' },
       due: { label: 'Target dates', cls: 'dates nowrap', sort: (t) => span(t)[1] || '9999', cell: (t) => (span(t)[0] ? `${fmt(span(t)[0])} – ${fmt(span(t)[1])}` : '—') },

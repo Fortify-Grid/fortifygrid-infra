@@ -411,7 +411,17 @@ async function workplanApi(req, env, user, path, method) {
 
   if (resource === 'tasks') {
     need('workplan');
-    if (method === 'GET') return json((await env.DB.prepare('SELECT * FROM wp_tasks ORDER BY id').all()).results);
+    if (method === 'GET') {
+      /* completed tasks are deleted 30 days after completion (checked whenever the list is loaded) */
+      const cut = new Date(Date.now() - 30 * 864e5).toISOString();
+      const old = `status = 'complete' AND completed_at IS NOT NULL AND completed_at < ?1`;
+      const [, del] = await env.DB.batch([
+        env.DB.prepare(`UPDATE wp_tasks SET depends_on = NULL WHERE depends_on IN (SELECT id FROM wp_tasks WHERE ${old})`).bind(cut),
+        env.DB.prepare(`DELETE FROM wp_tasks WHERE ${old}`).bind(cut),
+      ]);
+      if (del.meta.changes) await audit(env, 'system', 'purge completed tasks', `${WP}: ${del.meta.changes} older than 30 days`);
+      return json((await env.DB.prepare('SELECT * FROM wp_tasks ORDER BY id').all()).results);
+    }
     if (method === 'DELETE' && id) {
       await env.DB.batch([
         env.DB.prepare('UPDATE wp_tasks SET depends_on = NULL WHERE depends_on = ?').bind(id),
@@ -434,7 +444,8 @@ async function workplanApi(req, env, user, path, method) {
       const bad = upd.find((r) => r.start_date && r.due_date && r.due_date < r.start_date);
       if (bad) throw new HttpError(400, `Task #${bad.id}: due date would be before start date.`);
       await env.DB.batch(upd.map((r) => env.DB.prepare(`UPDATE wp_tasks SET project = ?1, category = ?2, status = ?3, start_date = ?4, due_date = ?5,
-          updated_at = ?6, updated_by = ?7 WHERE id = ?8`).bind(r.project, r.category, r.status, r.start_date, r.due_date, now(), user.email, r.id)));
+          updated_at = ?6, updated_by = ?7,
+          completed_at = CASE WHEN ?3 = 'complete' THEN COALESCE(completed_at, ?6) ELSE NULL END WHERE id = ?8`).bind(r.project, r.category, r.status, r.start_date, r.due_date, now(), user.email, r.id)));
       await audit(env, user.email, 'bulk edit tasks', `${WP}#${ids.join(',')}`);
       return json({ ok: true, changed: upd.length });
     }
@@ -449,11 +460,12 @@ async function workplanApi(req, env, user, path, method) {
         start, due, WP_STATUS.includes(body.status) ? body.status : 'not_started', now(), user.email];
       if (id) {
         const r = await env.DB.prepare(`UPDATE wp_tasks SET project = ?1, category = ?2, task = ?3, depends_on = ?4, depends_note = ?5,
-            start_date = ?6, due_date = ?7, status = ?8, updated_at = ?9, updated_by = ?10 WHERE id = ?11`).bind(...vals, id).run();
+            start_date = ?6, due_date = ?7, status = ?8, updated_at = ?9, updated_by = ?10,
+            completed_at = CASE WHEN ?8 = 'complete' THEN COALESCE(completed_at, ?9) ELSE NULL END WHERE id = ?11`).bind(...vals, id).run();
         if (!r.meta.changes) throw new HttpError(404, 'No such task.');
       } else {
-        await env.DB.prepare(`INSERT INTO wp_tasks (project, category, task, depends_on, depends_note, start_date, due_date, status, updated_at, updated_by, created_at)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?9)`).bind(...vals).run();
+        await env.DB.prepare(`INSERT INTO wp_tasks (project, category, task, depends_on, depends_note, start_date, due_date, status, updated_at, updated_by, created_at, completed_at)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?9, CASE WHEN ?8 = 'complete' THEN ?9 END)`).bind(...vals).run();
       }
       return json({ ok: true });
     }

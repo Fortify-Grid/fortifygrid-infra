@@ -186,6 +186,7 @@ CREATE TABLE IF NOT EXISTS wp_tasks (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   project      TEXT NOT NULL DEFAULT '',
   category     TEXT NOT NULL DEFAULT '',  -- existing DBs: run once  ALTER TABLE wp_tasks ADD COLUMN category TEXT NOT NULL DEFAULT '';
+  completed_at TEXT,  -- set when status becomes complete; task is deleted 30 days later. Existing DBs: ALTER TABLE wp_tasks ADD COLUMN completed_at TEXT;
   task         TEXT NOT NULL,
   depends_on   INTEGER,
   depends_note TEXT NOT NULL DEFAULT '',
