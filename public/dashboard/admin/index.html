@@ -61,7 +61,7 @@
     </section>
 
     <section data-panel="settings" hidden>
-      <h3>Theme colours</h3>
+      <h3 id="part-theme">Theme colours</h3>
       <p class="muted">Every app on the shared UI (portal, Planner, heatmap, query, revenue, IDE) uses these within a minute.</p>
       <form class="add" id="theme">
         <label>Main (sidebar, main buttons)<input type="color" name="theme_main"></label>
@@ -69,7 +69,7 @@
         <label>Accent 2 (chosen chips, hover)<input type="color" name="theme_accent2"></label>
         <button type="submit">Save colours</button><button type="button" class="ghost" id="theme-reset">Back to defaults</button>
       </form>
-      <h3>Other settings</h3>
+      <h3 id="part-other">Other settings</h3>
       <p class="muted">Site configuration. <code>dashboard_notice</code> shows as a banner on everyone's dashboard.</p>
       <form class="add" id="add-setting">
         <label>Key<input type="text" name="key" required placeholder="dashboard_notice" pattern="[a-z][a-z0-9_]{1,40}"></label>
@@ -77,7 +77,7 @@
         <button type="submit">Save</button>
       </form>
       <div id="settings"></div>
-      <h3>Sign-in</h3>
+      <h3 id="part-signin">Sign-in</h3>
       <div class="fg-table-wrap"><table class="fg-table"><tbody id="logins"></tbody></table></div>
     </section>
 
@@ -103,17 +103,28 @@
     const tables = {};
 
     /* sections (sidebar; remembered in the URL hash) */
-    const SECTIONS = { users: 'Users', apps: 'Apps', settings: 'Settings', docs: 'Documentation', activity: 'Activity' };
+    const SECTIONS = { users: 'Users', apps: 'App settings', settings: 'Settings', docs: 'Documentation', activity: 'Activity' };
     let shell;
-    function showTab(name) {
-      if (!SECTIONS[name]) name = 'users';
+    function showTab(id) {
+      // id = panel, or panel/anchor (a sidebar child that scrolls to a part of the panel)
+      let [name, part] = String(id).split('/');
+      if (!SECTIONS[name]) { name = 'users'; part = ''; }
       document.querySelectorAll('[data-panel]').forEach((p) => { p.hidden = p.dataset.panel !== name; });
       $('title').textContent = SECTIONS[name];
-      shell?.update({ current: name });
-      if (location.hash !== `#${name}`) history.replaceState(null, '', `#${name}`);
+      const cur = part ? `${name}/${part}` : name;
+      shell?.update({ current: cur });
+      if (location.hash !== `#${cur}`) history.replaceState(null, '', `#${cur}`);
       if (name === 'activity') loadAudit().catch((e) => showMsg(msg, e.message, 'err'));
       if (name === 'docs') showDocs();
+      const at = part && document.getElementById(`part-${part}`);
+      if (at) at.scrollIntoView({ behavior: 'smooth', block: 'start' }); else $('title').scrollIntoView?.({ block: 'start' });
     }
+    // Sidebar: headings open and close their lists.
+    const NAV = [
+      { id: 'access', label: 'Users & apps', children: [{ id: 'users', label: 'Users' }, { id: 'apps', label: 'App settings' }] },
+      { id: 'config', label: 'Settings', children: [{ id: 'settings/theme', label: 'Theme colours' }, { id: 'settings/other', label: 'Other settings' }, { id: 'settings/signin', label: 'Sign-in' }] },
+      { id: 'docs', label: 'Documentation' }, { id: 'activity', label: 'Activity' },
+    ];
 
     /* documentation: every app's generated docs, browsed from the left list (app → module) */
     let docsShown = false;
@@ -412,7 +423,7 @@
       const me = await api('me');
       FG.configure({ app: 'portal-admin', user: me.email });
       shell = FG.shell($('side'), { app: 'portal', name: 'Admin', icon: '/assets/planner-192.png', home: '/admin/', user: me.email,
-        sections: Object.entries(SECTIONS).map(([id, label]) => ({ id, label })), current: (location.hash || '#users').slice(1), onSection: showTab });
+        sections: NAV, current: (location.hash || '#users').slice(1), onSection: showTab });
       if (!me.admin) throw new Error('Admins only.');
       await load();
       showTab((location.hash || '#users').slice(1));

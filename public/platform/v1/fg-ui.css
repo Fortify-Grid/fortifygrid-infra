@@ -223,3 +223,12 @@
   .fg-work button, .fg-work select, .fg-bar input { min-height: 40px; }
 }
 @media print { .fg-side, .fg-bar { display: none !important; } .fg-app { display: block; } .fg-work { padding: 0; } }
+
+.fg-docs-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--fg-line); margin: 10px 0 14px; }
+.fg-docs-tabs button { font: inherit; background: none; border: 0; border-bottom: 3px solid transparent; padding: 8px 14px; cursor: pointer; color: var(--fg-muted); }
+.fg-docs-tabs button.on { color: var(--fg-ink); border-bottom-color: var(--fg-mint); font-weight: 600; }
+
+.fg-nav-head .fg-chev { margin-left: auto; opacity: .6; }
+.fg-nav-sub { display: flex; flex-direction: column; gap: 2px; margin: 2px 0 4px 12px; padding-left: 8px; border-left: 2px solid var(--fg-line); }
+.fg-nav-head.on { font-weight: 600; }
+@media (max-width: 760px) { .fg-nav-group, .fg-nav-sub { display: contents; } .fg-nav-sub { margin: 0; padding: 0; border: 0; } }

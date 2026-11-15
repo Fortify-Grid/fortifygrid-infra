@@ -18,7 +18,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/admin/apps",
-      "source": "worker.js:696"
+      "source": "worker.js:709"
     },
     {
       "module": "access",
@@ -37,7 +37,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/admin/apps/:id/tabs",
-      "source": "worker.js:696"
+      "source": "worker.js:709"
     },
     {
       "module": "access",
@@ -52,7 +52,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/api/admin/audit",
-      "source": "worker.js:735"
+      "source": "worker.js:748"
     },
     {
       "module": "access",
@@ -69,7 +69,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/api/admin/docs",
-      "source": "worker.js:742"
+      "source": "worker.js:755"
     },
     {
       "module": "access",
@@ -86,7 +86,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/api/admin/overview",
-      "source": "worker.js:675"
+      "source": "worker.js:688"
     },
     {
       "module": "access",
@@ -101,7 +101,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/admin/sync",
-      "source": "worker.js:728"
+      "source": "worker.js:741"
     },
     {
       "module": "access",
@@ -120,7 +120,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/admin/users",
-      "source": "worker.js:683"
+      "source": "worker.js:696"
     },
     {
       "module": "access",
@@ -139,7 +139,7 @@
       "kind": "http",
       "method": "DELETE",
       "path": "/api/admin/users/:email",
-      "source": "worker.js:683"
+      "source": "worker.js:696"
     },
     {
       "module": "access",
@@ -158,7 +158,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/admin/users/:email/invite",
-      "source": "worker.js:683"
+      "source": "worker.js:696"
     },
     {
       "module": "directory",
@@ -173,7 +173,7 @@
       "kind": "rpc",
       "method": "RPC",
       "path": "Directory.access(email, appId)",
-      "source": "worker.js:824"
+      "source": "worker.js:837"
     },
     {
       "module": "directory",
@@ -188,7 +188,7 @@
       "kind": "rpc",
       "method": "RPC",
       "path": "Directory.config(appId)",
-      "source": "worker.js:824"
+      "source": "worker.js:837"
     },
     {
       "module": "directory",
@@ -203,7 +203,7 @@
       "kind": "rpc",
       "method": "RPC",
       "path": "Directory.tabs(email, appId)",
-      "source": "worker.js:824"
+      "source": "worker.js:837"
     },
     {
       "module": "directory",
@@ -218,7 +218,7 @@
       "kind": "rpc",
       "method": "RPC",
       "path": "Directory.users(appId)",
-      "source": "worker.js:824"
+      "source": "worker.js:837"
     },
     {
       "module": "planner",
@@ -237,7 +237,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/api/workplan/access",
-      "source": "worker.js:474"
+      "source": "worker.js:487"
     },
     {
       "module": "planner",
@@ -256,7 +256,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/workplan/access",
-      "source": "worker.js:474"
+      "source": "worker.js:487"
     },
     {
       "module": "planner",
@@ -273,7 +273,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/api/workplan/me",
-      "source": "worker.js:436"
+      "source": "worker.js:449"
     },
     {
       "module": "planner",
@@ -294,7 +294,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/api/workplan/tasks",
-      "source": "worker.js:444"
+      "source": "worker.js:457"
     },
     {
       "module": "planner",
@@ -315,7 +315,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/workplan/tasks",
-      "source": "worker.js:444"
+      "source": "worker.js:457"
     },
     {
       "module": "planner",
@@ -336,7 +336,7 @@
       "kind": "http",
       "method": "DELETE",
       "path": "/api/workplan/tasks/:id",
-      "source": "worker.js:444"
+      "source": "worker.js:457"
     },
     {
       "module": "planner",
@@ -357,7 +357,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/workplan/tasks/:id",
-      "source": "worker.js:444"
+      "source": "worker.js:457"
     },
     {
       "module": "planner",
@@ -378,7 +378,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/workplan/tasks/bulk",
-      "source": "worker.js:444"
+      "source": "worker.js:457"
     },
     {
       "module": "planner",
@@ -397,7 +397,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/api/workplan/workstreams",
-      "source": "worker.js:460"
+      "source": "worker.js:473"
     },
     {
       "module": "planner",
@@ -416,7 +416,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/workplan/workstreams",
-      "source": "worker.js:460"
+      "source": "worker.js:473"
     },
     {
       "module": "planner",
@@ -435,7 +435,7 @@
       "kind": "http",
       "method": "DELETE",
       "path": "/api/workplan/workstreams/:id",
-      "source": "worker.js:460"
+      "source": "worker.js:473"
     },
     {
       "module": "planner",
@@ -454,7 +454,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/workplan/workstreams/:id",
-      "source": "worker.js:460"
+      "source": "worker.js:473"
     },
     {
       "module": "planner",
@@ -473,7 +473,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/workplan/workstreams/order",
-      "source": "worker.js:460"
+      "source": "worker.js:473"
     },
     {
       "module": "platform",
@@ -488,7 +488,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/platform/:version/:file",
-      "source": "worker.js:889"
+      "source": "worker.js:902"
     },
     {
       "module": "platform",
@@ -503,7 +503,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/platform/v1/theme.css",
-      "source": "worker.js:870"
+      "source": "worker.js:883"
     },
     {
       "module": "portal",
@@ -520,7 +520,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/*",
-      "source": "worker.js:907"
+      "source": "worker.js:920"
     },
     {
       "module": "portal",
@@ -539,7 +539,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/admin/folders",
-      "source": "worker.js:707"
+      "source": "worker.js:720"
     },
     {
       "module": "portal",
@@ -558,7 +558,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/admin/settings",
-      "source": "worker.js:717"
+      "source": "worker.js:730"
     },
     {
       "module": "portal",
@@ -577,7 +577,7 @@
       "kind": "http",
       "method": "DELETE",
       "path": "/api/admin/settings/:key",
-      "source": "worker.js:717"
+      "source": "worker.js:730"
     },
     {
       "module": "portal",
@@ -594,7 +594,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/api/me",
-      "source": "worker.js:666"
+      "source": "worker.js:679"
     },
     {
       "module": "portal",
@@ -611,7 +611,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/ide/*",
-      "source": "worker.js:907"
+      "source": "worker.js:920"
     },
     {
       "module": "portal",
@@ -628,7 +628,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/workplan/*",
-      "source": "worker.js:907"
+      "source": "worker.js:920"
     },
     {
       "module": "site",
@@ -643,7 +643,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/",
-      "source": "worker.js:972"
+      "source": "worker.js:985"
     }
   ]
 }
