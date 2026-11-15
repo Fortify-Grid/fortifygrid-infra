@@ -63,3 +63,6 @@ Worker rules (128 MB memory, short CPU):
 2. UI: load the kit, build the page with `FG.shell` / `FG.table` / `FG.filters` / `FG.sections`; add the app to `FG.APPS` here.
 3. Docs: copy `platform/tools/generate-docs.mjs` to the same path, write `docs.config.json`, annotate, `npm run docs`,
    add it to `npm run check`.
+4. Documentation section (admins): import the three generated JSON files in the Worker, serve them at `GET /api/docs`
+   (app admins only; `appWorker({ docs })` does this), add a `docs` section shown to admins that calls
+   `FG.docs(el, { url: '/api/docs' })`, and open it on `#docs` (admin → Documentation links there).

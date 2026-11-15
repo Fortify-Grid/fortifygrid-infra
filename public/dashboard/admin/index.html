@@ -76,6 +76,13 @@
       <div class="fg-table-wrap"><table class="fg-table"><tbody id="logins"></tbody></table></div>
     </section>
 
+    <section data-panel="docs" hidden>
+      <p class="muted">API routes and database tables of every app, generated from code annotations (<code>npm run docs</code>; CI fails if they are stale).
+        Each app also has its own Documentation section, for its admins.</p>
+      <div class="fg-bar"><label>App <select id="docs-app"></select></label><a id="docs-open" target="_blank" rel="noopener" hidden>Open in the app ↗</a></div>
+      <div id="docs-box"></div>
+    </section>
+
     <section data-panel="activity" hidden>
       <div class="fg-bar"><span class="fg-grow"></span><span class="fg-count" id="audit-count"></span></div>
       <div id="audit"></div>
@@ -92,7 +99,7 @@
     const tables = {};
 
     /* sections (sidebar; remembered in the URL hash) */
-    const SECTIONS = { users: 'Users', apps: 'Apps', settings: 'Settings', activity: 'Activity' };
+    const SECTIONS = { users: 'Users', apps: 'Apps', settings: 'Settings', docs: 'Documentation', activity: 'Activity' };
     let shell;
     function showTab(name) {
       if (!SECTIONS[name]) name = 'users';
@@ -101,6 +108,22 @@
       shell?.update({ current: name });
       if (location.hash !== `#${name}`) history.replaceState(null, '', `#${name}`);
       if (name === 'activity') loadAudit().catch((e) => showMsg(msg, e.message, 'err'));
+      if (name === 'docs') showDocs();
+    }
+
+    /* documentation: this portal's docs inline; other apps' docs open in that app (its own /api/docs needs its login) */
+    function showDocs() {
+      const sel = $('docs-app');
+      if (!sel.options.length) {
+        sel.innerHTML = '<option value="portal">Portal, admin, Planner</option>' + state.apps.filter((a) => a.id !== 'portal' && a.url)
+          .map((a) => `<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('');
+        sel.addEventListener('change', showDocs);
+      }
+      const app = state.apps.find((a) => a.id === sel.value);
+      const link = $('docs-open');
+      if (!app) { link.hidden = true; FG.docs($('docs-box'), { url: '/api/admin/docs' }); return; }
+      link.hidden = false; link.href = `${app.url.replace(/#.*$/, '')}#docs`;
+      $('docs-box').innerHTML = `<p>${esc(app.name)} keeps its documentation in its own Documentation section (admins of that app). <a href="${esc(link.href)}" target="_blank" rel="noopener">Open ${esc(app.name)} → Documentation ↗</a></p>`;
     }
     addEventListener('hashchange', () => showTab(location.hash.slice(1) || 'users'));
 

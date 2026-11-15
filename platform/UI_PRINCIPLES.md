@@ -68,6 +68,11 @@ the dark accent (`#0C4A6E`) for links, ghost buttons and ticks; it kept its name
   toggles (☑ Open only) · then "**12 of 80 shown**" · **Reset filters** (only when something is changed) · page buttons.
 - Kept in the **URL** (a copied link shows the same view) and remembered per person; the URL wins.
 
+## 6b. Documentation (`FG.docs`)
+- Every app has a **Documentation** section, admins only, last in the sidebar, opened by `#docs`.
+- It shows the app's generated API (method, path, permission, parameters, returns, errors, source) and tables
+  (columns, keys, links in and out). Same viewer everywhere; nothing hand-written.
+
 ## 7. Words, feedback, safety
 - Plain words. Help in ⓘ, not paragraphs. Empty list: one sentence and the next step.
 - Messages: `.fg-msg` (amber), `.fg-msg.err` (red), `.fg-msg.ok` (green), at the top of the work area.
