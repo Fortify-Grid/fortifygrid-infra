@@ -67,7 +67,7 @@
       <div class="bar">
         <div class="chips" id="filters">
           <button class="chip on" data-f="all">All weeks</button>
-          <button class="chip" data-f="today">Today</button>
+          <button class="chip" data-f="today">Immediate</button>
           <button class="chip" data-f="current">Current week</button>
           <button class="chip" data-f="next2">Next 2 weeks</button>
           <button class="chip" data-f="overdue">Overdue</button>
@@ -201,7 +201,7 @@
     }
     function render() {
       const from = ymd(wk0), to = ymd(addDays(wk0, 6)), n1 = ymd(addDays(wk0, 7)), n2 = ymd(addDays(wk0, 20));
-      const keep = { all: () => true, today: (t) => overlaps(t, today, today), current: (t) => overlaps(t, from, to), next2: (t) => overlaps(t, n1, n2), overdue: late }[filter];
+      const keep = { all: () => true, today: (t) => t.status !== 'complete' && (t.due_date === today || t.due_date === ymd(addDays(new Date(), 1))), current: (t) => overlaps(t, from, to), next2: (t) => overlaps(t, n1, n2), overdue: late }[filter];
       const colOk = (t) => Object.entries(flt).every(([k, v]) => !v || (COLS[k].text ? t.task.toLowerCase().includes(v.toLowerCase()) : (COLS[k].f(t) || NONE) === v));
       const sv = COLS[sort.key].sort;
       const list = tasks.filter((t) => keep(t) && colOk(t))
