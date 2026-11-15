@@ -8,157 +8,78 @@
   <link rel="manifest" href="/workplan/manifest.webmanifest" crossorigin="use-credentials">
   <link rel="icon" type="image/png" href="/assets/favicon.png">
   <link rel="apple-touch-icon" href="/assets/planner-apple-180.png">
-  <meta name="theme-color" content="#0B3D20">
+  <meta name="theme-color" content="#98FF98">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Planner">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="stylesheet" href="/portal.css">
+  <link rel="stylesheet" href="/platform/v1/fg-ui.css">
+  <script src="/platform/v1/fg-ui.js"></script>
   <style>
-    /* Slack-like shell: dark green sidebar (tabs + workstreams as channels), clean white work area. */
-    :root { --side: #0B3D20; --side-ink: rgba(255,255,255,.72); --side-on: #2E6F40; --bg: #F7F7F5; --line: #E8E6E3; --hover: #F4F4F2; }
-    body { background: #fff; font-size: 15px; -webkit-font-smoothing: antialiased; }
-    .app { display: grid; grid-template-columns: 248px 1fr; min-height: 100vh; min-height: 100dvh; }
-    .side { background: var(--side); color: var(--side-ink); display: flex; flex-direction: column; gap: 2px; padding: calc(14px + env(safe-area-inset-top)) 10px 14px;
-      position: sticky; top: 0; height: 100vh; height: 100dvh; overflow-y: auto; }
-    .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 14px; color: #fff; font-weight: 700; font-size: 17px; text-decoration: none; }
-    .brand img { width: 30px; height: 30px; border-radius: 8px; }
-    .side-h { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: rgba(255,255,255,.5); padding: 16px 10px 6px; }
-    .side .tab, #ws-tabs button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: none; border: 0; border-radius: 6px;
-      color: var(--side-ink); padding: 6px 10px; font-size: 15px; min-height: 32px; }
-    .side .tab:hover, #ws-tabs button:hover { background: rgba(255,255,255,.08); color: #fff; }
-    .side .tab.on, #ws-tabs button.on { background: var(--side-on); color: #fff; font-weight: 600; }
-    #ws-tabs button::before { content: '#'; opacity: .6; font-weight: 400; }
-    #ws-tabs button[data-ws="-1"]::before { content: '✓'; }
-    #ws-tabs button[draggable=true] { cursor: pointer; }
-    #tabs, #ws-tabs { display: flex; flex-direction: column; gap: 2px; }
-    .side-foot { margin-top: auto; padding: 14px 10px 0; font-size: 13px; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid rgba(255,255,255,.1); }
-    .side-foot a { color: var(--side-ink); text-decoration: none; } .side-foot a:hover { color: #fff; }
-    .side-foot #who { color: rgba(255,255,255,.5); overflow-wrap: anywhere; }
-    .app > main { max-width: none; margin: 0; padding: 0 28px 40px; min-width: 0; }
-    .top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 18px 0 12px; border-bottom: 1px solid var(--line); }
-    .top h1 { font-family: inherit; font-size: 20px; font-weight: 700; margin: 0; }
-    .top .wk { font-size: 13px; color: var(--muted); background: var(--hover); border-radius: 12px; padding: 3px 10px; }
-    .top .grow, .bar .grow { flex: 1; }
-    button { border-radius: 6px; font-weight: 500; }
-    #add { padding: 7px 14px; }
-    .bar { position: sticky; top: 0; z-index: 5; background: #fff; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 0; }
-    .chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
-    .chip { background: #fff; color: var(--ink); border: 1px solid var(--line); white-space: nowrap; border-radius: 16px; padding: 5px 12px; font-size: 13px; }
-    .chip:hover { background: var(--hover); }
-    .chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
-    #sel { display: inline-flex; gap: 6px; align-items: center; background: #EAF2EC; border-radius: 8px; padding: 4px 4px 4px 10px; font-size: 14px; }
-    #sel[hidden] { display: none; } #sel button { padding: 4px 10px; font-size: 13px; }
-    .table-wrap { border: 0; border-radius: 0; }
-    table { font-size: 14px; }
-    th, td { border-bottom: 1px solid var(--line); padding: 9px 10px; }
-    thead th { background: #fff; font-size: 11px; letter-spacing: .04em; }
-    tbody tr:hover > td { background: var(--hover); }
-    th[data-sort] { cursor: pointer; user-select: none; white-space: nowrap; }
-    tr.grp td { background: var(--bg); padding: 10px 8px; font-size: 15px; cursor: grab; border-top: 1px solid var(--line); }
-    tr.grp.over td { outline: 2px dashed var(--green); } tr.grp button { padding: 0 8px; min-height: 0; }
-    th.hd[draggable=true] { cursor: grab; } th.over { outline: 2px dashed var(--green); }
-    tr.flt th { padding: 4px 6px; font-weight: normal; text-transform: none; } tr.flt select, tr.flt input { width: 100%; min-width: 90px; font: inherit; font-size: 13px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
-    th[data-sort].asc::after { content: ' ▲'; } th[data-sort].desc::after { content: ' ▼'; }
-    .tag { display: inline-block; font-size: 12px; background: #EAF2EC; color: var(--green); border-radius: 10px; padding: 2px 8px; }
-    .wait { color: var(--coral); font-size: 12px; }
-    td.task { font-weight: 500; }
-    td.nowrap { white-space: nowrap; }
-    tr.st-complete td.task { text-decoration: line-through; color: var(--muted); }
-    tr.st-complete > td { background: rgba(46, 125, 50, .07); }   /* complete = light green */
-    tr.late > td { background: rgba(211, 63, 63, .07); }          /* overdue = light red */
-    tr.late td.dates { color: var(--coral); font-weight: 600; }
+    /* Shell, bar, chips, table, groups and phone cards come from the shared UI kit (/platform/v1/, platform/UI_PRINCIPLES.md).
+       Only Planner-specific bits here. */
+    body { font-size: 15px; -webkit-font-smoothing: antialiased; }
+    .fg-nav.channels [data-id="-1"]::before { content: '✓'; }
+    .fg-table td.task { font-weight: 500; }
+    .fg-table tr.st-complete td.task { text-decoration: line-through; color: var(--fg-muted); }
+    .fg-table tr.late td.dates { color: var(--fg-coral); font-weight: 600; }
+    .wait { color: var(--fg-coral); font-size: 12px; }
     select.status { min-width: 120px; border-radius: 6px; }
-    .soon { background: var(--bg); border-radius: 10px; padding: 48px 20px; text-align: center; margin-top: 20px; }
+    .soon { background: var(--fg-bg); border-radius: 10px; padding: 48px 20px; text-align: center; margin-top: 20px; }
     .msg { border-radius: 8px; }
     dialog { border: 0; border-radius: 12px; padding: 22px; width: min(540px, calc(100vw - 32px)); box-shadow: 0 20px 60px rgba(0,0,0,.25); }
     dialog::backdrop { background: rgba(0,0,0,.35); }
     dialog form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     dialog .full { grid-column: 1 / -1; }
-    dialog textarea, dialog input, dialog select { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; width: 100%; }
-    td input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--green); }
-    #wslist input, #ws-add input { font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; }
-    #access input[type=text] { width: 120px; } .wsbox { display: flex; flex-wrap: wrap; gap: 4px 12px; } .wsbox label { flex-direction: row; align-items: center; gap: 4px; color: var(--ink); font-size: 13px; }
-    h3 { font-size: 16px; }
-    /* Phone: sidebar becomes a top bar with sideways-scrolling tabs and workstreams; task rows become cards. */
+    dialog textarea, dialog input, dialog select { font: inherit; padding: 8px 10px; border: 1px solid var(--fg-line); border-radius: 6px; width: 100%; }
+    #wslist input, #ws-add input { font: inherit; padding: 6px 10px; border: 1px solid var(--fg-line); border-radius: 6px; }
+    #access input[type=text] { width: 120px; } .wsbox { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+    .wsbox label { flex-direction: row; align-items: center; gap: 4px; color: var(--fg-ink); font-size: 13px; }
     @media (max-width: 720px) {
-      .app { display: block; }
-      .side { position: sticky; top: 0; z-index: 10; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px; padding: calc(8px + env(safe-area-inset-top)) 12px 8px; overflow: visible; }
-      .brand { padding: 0 6px 0 0; font-size: 16px; } .brand img { width: 26px; height: 26px; }
-      .side-h { display: none; }
-      #tabs { flex-direction: row; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
-      #ws-tabs { flex-direction: row; width: 100%; overflow-x: auto; scrollbar-width: none; order: 3; }
-      .side .tab, #ws-tabs button { width: auto; white-space: nowrap; padding: 4px 10px; min-height: 32px; font-size: 14px; }
-      .side-foot { display: none; }
-      .app > main { padding: 0 14px 40px; }
-      .bar { position: static; }
-      .table-wrap.cards { border: 0; overflow: visible; }
-      .cards table, .cards tbody, .cards tr, .cards td { display: block; width: 100%; }
-      .cards thead, .cards thead tr.flt { display: flex; flex-wrap: wrap; gap: 6px; border: 0; padding: 0; background: none; margin-bottom: 10px; }
-      .cards thead tr.hd { display: none; }
-      .cards tr.grp { background: none; border: 0; padding: 0; margin: 14px 0 6px; } .cards tr.grp td { display: block; padding: 4px 0; border: 0; }
-      .cards tr.flt th:first-child, .cards tr.hd th { display: none; }
-      .cards tr.flt th { display: block; width: auto; flex: 1 1 140px; padding: 0; }
-      .cards tr { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
-      .cards tr.st-complete { background: rgba(46, 125, 50, .07); } .cards tr.late { background: rgba(211, 63, 63, .07); } .cards tr > td { background: none !important; }
-      .cards tr.st-blocked { border-left: 4px solid var(--coral); } .cards tr.st-in_progress { border-left: 4px solid var(--green); }
-      .cards td { border: 0; padding: 4px 0; display: flex; gap: 10px; justify-content: space-between; align-items: center; }
-      .cards td[data-label]::before { content: attr(data-label); font-size: 12px; color: var(--muted); text-transform: uppercase; }
-      .cards td.task { font-size: 16px; display: block; }
-      .cards td.task::before { display: none; }
-      main button, main select, .bar input { min-height: 40px; }
+      .cards .fg-table tr.st-blocked { border-left: 4px solid var(--fg-coral); } .cards .fg-table tr.st-in_progress { border-left: 4px solid var(--fg-green); }
       dialog form { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
- <div class="app">
-  <aside class="side">
-    <a class="brand" href="/workplan/"><img src="/assets/planner-192.png" alt="">Planner</a>
-    <nav id="tabs"></nav>
-    <div class="side-h" id="ws-h">Workstreams</div>
-    <div id="ws-tabs"></div>
-    <div class="side-foot"><span id="who"></span><a href="/">← All apps</a><a href="/cdn-cgi/access/logout">Sign out</a></div>
-  </aside>
-  <main>
+ <div class="fg-app">
+  <aside id="side"></aside>
+  <main class="fg-work">
     <div id="msg" class="msg" hidden></div>
 
     <section data-tab="workplan" hidden>
-      <div class="top"><h1 id="ws-title">Tasks</h1><span class="wk"><span id="wk"></span> · <span id="wk-dates"></span></span><span class="grow"></span><button id="add">+ Add task</button></div>
-      <div class="bar">
-        <div class="chips" id="filters">
-          <button class="chip on" data-f="all">All weeks</button>
-          <button class="chip" data-f="today">Immediate</button>
-          <button class="chip" data-f="current">Current week</button>
-          <button class="chip" data-f="next2">Next 2 weeks</button>
-          <button class="chip" data-f="overdue">Overdue</button>
-        </div>
-        <button id="clear" class="ghost" hidden>Clear filters</button>
-        <span class="grow"></span>
-        <span id="sel" hidden><b id="sel-n"></b> selected <button id="copy" title="Copy task names as a numbered list (paste in WhatsApp, email…)">Copy list</button><button id="bulk" class="ghost">Edit</button><button id="unsel" class="ghost">✕</button></span>
+      <div class="fg-top"><h1 id="ws-title">Tasks</h1><span class="fg-pill"><span id="wk"></span> · <span id="wk-dates"></span></span><span class="fg-grow"></span><button id="add" class="fg-btn">+ Add task</button></div>
+      <div class="fg-bar" id="bar">
+        <button id="clear" class="fg-link" hidden>Reset filters</button>
+        <span class="fg-grow"></span>
+        <span id="sel" class="fg-selbar" hidden><b id="sel-n"></b> selected <button id="copy" class="fg-btn small" title="Copy task names as a numbered list (paste in WhatsApp, email…)">Copy list</button><button id="bulk" class="fg-btn small ghost">Edit</button><button id="unsel" class="fg-btn small ghost" aria-label="Clear selection">✕</button></span>
       </div>
-      <div class="table-wrap cards"><table>
-        <thead id="head"></thead>
-        <tbody id="rows"></tbody>
-      </table></div>
-      <p id="count" class="muted"></p>
+      <div id="tasks"></div>
+      <p id="count" class="fg-count"></p>
     </section>
 
-    <section data-tab="pricing" hidden><div class="top"><h1>System Pricing</h1></div><div class="soon"><p class="muted">Coming soon. This tab is under construction.</p></div></section>
-    <section data-tab="accounts" hidden><div class="top"><h1>Accounts</h1></div><div class="soon"><p class="muted">Coming soon. This tab is under construction.</p></div></section>
+    <section data-tab="pricing" hidden><div class="fg-top"><h1>System Pricing</h1></div><div class="soon"><p class="muted">Coming soon. This tab is under construction.</p></div></section>
+    <section data-tab="accounts" hidden><div class="fg-top"><h1>Accounts</h1></div><div class="soon"><p class="muted">Coming soon. This tab is under construction.</p></div></section>
 
     <section data-tab="admin" hidden>
-      <div class="top"><h1>Admin</h1></div>
-      <h3>People</h3>
-      <p class="muted"><b>Name</b>: what you type in a task's "Depends on" note (e.g. Sandeep). Those tasks show in that person's view.
-        <b>Shared workstreams</b>: they see, add and edit every task there (sharing also gives the Tasks tab).
-        Members see only these; Planner admins see everything (set the role at <a href="/admin/">Manage users</a>, where new people are added).</p>
-      <div class="table-wrap"><table><thead><tr><th>User</th><th>Name</th><th>Tasks</th><th>System Pricing</th><th>Accounts</th><th>Shared workstreams</th><th>Role</th></tr></thead>
-        <tbody id="access"></tbody></table></div>
-      <h3>Workstreams</h3>
-      <p class="muted">Rename, reorder or add (this is the default order; each person can also drag them into their own order, saved in their browser). A workstream that still has tasks can't be deleted: move them first (select tasks, Edit, Workstream).</p>
-      <div class="table-wrap"><table><tbody id="wslist"></tbody></table></div>
-      <form id="ws-add" class="bar"><input name="name" type="text" placeholder="New workstream" required maxlength="40"><button>Add</button></form>
+      <div class="fg-top"><h1>Admin</h1></div>
+      <div id="admin-cards">
+        <section class="fg-section" data-id="people"><div class="fg-section-head"><span class="fg-handle" title="Drag to move">⠿</span><span class="fg-chev">▾</span><h3>People</h3></div>
+          <div class="fg-section-body">
+            <p class="muted"><b>Name</b>: what you type in a task's "Depends on" note (e.g. Sandeep). Those tasks show in that person's view.
+              <b>Shared workstreams</b>: they see, add and edit every task there (sharing also gives the Tasks tab).
+              Members see only these; Planner admins see everything (set the role at <a href="/admin/">Manage users</a>, where new people are added).</p>
+            <div class="fg-table-wrap"><table class="fg-table"><thead><tr><th>User</th><th>Name</th><th>Tasks</th><th>System Pricing</th><th>Accounts</th><th>Shared workstreams</th><th>Role</th></tr></thead>
+              <tbody id="access"></tbody></table></div>
+          </div></section>
+        <section class="fg-section" data-id="workstreams"><div class="fg-section-head"><span class="fg-handle" title="Drag to move">⠿</span><span class="fg-chev">▾</span><h3>Workstreams</h3></div>
+          <div class="fg-section-body">
+            <p class="muted">Rename, reorder or add (this is the default order; each person can also drag them into their own order, saved in their browser). A workstream that still has tasks can't be deleted: move them first (select tasks, Edit, Workstream).</p>
+            <div class="fg-table-wrap"><table class="fg-table"><tbody id="wslist"></tbody></table></div>
+            <form id="ws-add" class="fg-bar"><input name="name" type="text" placeholder="New workstream" required maxlength="40"><button class="fg-btn">Add</button></form>
+          </div></section>
+      </div>
     </section>
   </main>
  </div>
@@ -226,18 +147,33 @@
     $('wk').textContent = `Week ${isoWeek(wk0)}`;
     $('wk-dates').textContent = `${fmt(ymd(wk0))} – ${fmt(ymd(addDays(wk0, 6)))}, ${addDays(wk0, 6).getFullYear()}`;
 
-    /* tabs the user may open (from the server; the API enforces them too) */
-    let me;
+    /* Settings saved before the shared UI kit (wp-* keys, per browser) → the kit's keys, once. */
+    function migrate() {
+      const k = (n) => FG.key(n);
+      if (FG.store.get(k('table:tasks')) == null) {
+        const view = lsGet('wp-view') || {};
+        const st = {};
+        if (Array.isArray(lsGet('wp-cols'))) st.order = lsGet('wp-cols');
+        if (view.sort?.key) st.sort = { key: view.sort.key, dir: view.sort.dir < 0 ? -1 : 1 };
+        if (Array.isArray(lsGet('wp-fold'))) st.folded = lsGet('wp-fold').map(String);
+        if (Array.isArray(lsGet('wp-grporder'))) st.groups = lsGet('wp-grporder').map(String);
+        FG.store.set(k('table:tasks'), st);
+        if (view.filter && FG.store.get(k('filters:tasks')) == null) FG.store.set(k('filters:tasks'), { win: view.filter });
+      }
+      if (FG.store.get(k('nav:channels')) == null && Array.isArray(lsGet('wp-wsorder'))) FG.store.set(k('nav:channels'), lsGet('wp-wsorder').map(String));
+    }
+
+    /* tabs = sidebar sections (from the server; the API enforces them too); workstreams = channels */
+    let me, shell, allowed = [];
     function showTab(name) {
       document.querySelectorAll('section[data-tab]').forEach((s) => { s.hidden = s.dataset.tab !== name; });
-      document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('on', b.dataset.tab === name));
-      history.replaceState(null, '', `#${name}`);
-      $('ws-h').hidden = $('ws-tabs').hidden = !me.tabs.includes('workplan');
+      shell.update({ current: name });
+      history.replaceState(null, '', `${location.search}#${name}`);
       if (name === 'admin') { loadAccess(); drawWsAdmin(); }
     }
 
-    /* workplan */
-    let tasks = [], filter = 'all', sort = { key: 'week', dir: 1 }, editing = null;
+    /* tasks */
+    let tasks = [], editing = null, wss = [], ws = 0, table, filters;
     const byId = (id) => tasks.find((t) => t.id === id);
     const status = (t) => `<select class="status" data-id="${t.id}" aria-label="Status">${Object.entries(STATUS).map(([k, v]) =>
       `<option value="${k}"${k === t.status ? ' selected' : ''}>${v}</option>`).join('')}</select>`;
@@ -245,157 +181,86 @@
       const d = t.depends_on && byId(t.depends_on);
       return [d ? `#${d.id} ${esc(d.task)}${d.status === 'complete' ? '' : ' <span class="wait">(waiting)</span>'}` : '', esc(t.depends_note)].filter(Boolean).join('<br>') || '—';
     };
-    const tag = (v) => (v ? `<span class="tag">${esc(v)}</span>` : '—');
-    /* Columns. sort = sort key; f = filter value of a task (dropdown of distinct values); text = free-text filter. Order is saved per browser. */
-    const COLS = {
-      project: { label: 'Project', sort: (t) => t.project.toLowerCase(), f: (t) => t.project, cell: (t) => tag(t.project) },
-      category: { label: 'Category', sort: (t) => (t.category || '').toLowerCase(), f: (t) => t.category || '', cell: (t) => tag(t.category) },
-      task: { label: 'Task', cls: 'task', sort: (t) => t.task.toLowerCase(), text: true, cell: (t) => esc(t.task) + (t.status === 'complete' && t.completed_at ? ` <span class="muted" style="font-size:12px;font-weight:400">· removed in ${Math.max(0, 30 - Math.floor((Date.now() - Date.parse(t.completed_at)) / 864e5))}d</span>` : '') },
-      dep: { label: 'Depends on', sort: (t) => (t.depends_on ? byId(t.depends_on)?.task || '' : t.depends_note).toLowerCase(),
+    const tag = (v) => (v ? `<span class="fg-badge">${esc(v)}</span>` : '—');
+    /* Columns: sort = sort key; f = dropdown filter value; text = free-text filter. Order, widths, sort, filters: saved by the kit. */
+    const COLS = [
+      { key: 'project', label: 'Project', sort: (t) => t.project.toLowerCase(), f: (t) => t.project, cell: (t) => tag(t.project) },
+      { key: 'category', label: 'Category', sort: (t) => (t.category || '').toLowerCase(), f: (t) => t.category || '', cell: (t) => tag(t.category) },
+      { key: 'task', label: 'Task', cls: 'task', main: true, sort: (t) => t.task.toLowerCase(), text: (t) => t.task,
+        cell: (t) => esc(t.task) + (t.status === 'complete' && t.completed_at ? ` <span class="muted" style="font-size:12px;font-weight:400">· removed in ${Math.max(0, 30 - Math.floor((Date.now() - Date.parse(t.completed_at)) / 864e5))}d</span>` : '') },
+      { key: 'dep', label: 'Depends on', sort: (t) => (t.depends_on ? byId(t.depends_on)?.task || '' : t.depends_note).toLowerCase(),
         f: (t) => { const d = t.depends_on && byId(t.depends_on); return (d ? `#${d.id} ${d.task}` : t.depends_note || '').slice(0, 60); }, cell: dep },
-      week: { label: 'Week', cls: 'nowrap', sort: (t) => span(t)[0] || '9999', f: weekLabel, cell: (t) => weekLabel(t) || '—' },
-      due: { label: 'Target dates', cls: 'dates nowrap', sort: (t) => span(t)[1] || '9999', cell: (t) => (span(t)[0] ? `${fmt(span(t)[0])} – ${fmt(span(t)[1])}` : '—') },
-      status: { label: 'Status', sort: (t) => Object.keys(STATUS).indexOf(t.status), f: (t) => t.status, show: (v) => STATUS[v], cell: status },
-    };
-    const DEFAULT = Object.keys(COLS);
-    let order = DEFAULT, flt = {}, picked = new Set(), shown = [], wss = [], ws = 0;
-    const inWs = () => (ws === -1 ? tasks.filter((t) => t.status !== 'complete') : tasks.filter((t) => t.workstream_id === ws)); /* ws -1 = To do: open tasks of every workstream */
-    try { const o = JSON.parse(localStorage.getItem('wp-cols')); if (Array.isArray(o) && o.length === DEFAULT.length && DEFAULT.every((k) => o.includes(k))) order = o; } catch {}
-    const WINDOWS = ['all', 'today', 'current', 'next2', 'overdue'];
-    const view = lsGet('wp-view');   /* saved per browser: chip filter + sort */
-    if (view && COLS[view.sort?.key] && WINDOWS.includes(view.filter)) {
-      filter = view.filter; sort = { key: view.sort.key, dir: view.sort.dir < 0 ? -1 : 1 };
-      document.querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', c.dataset.f === filter));
-    }
-    const NONE = '\u0000';
-    const optVals = (k) => {
-      const c = COLS[k], vals = [...new Set(inWs().map(c.f))];
-      return vals.sort((a, b) => (c.show ? Object.keys(STATUS).indexOf(a) - Object.keys(STATUS).indexOf(b) : String(a).localeCompare(String(b), undefined, { numeric: true })));
-    };
-    function buildHead() {
-      $('head').innerHTML = `<tr class="hd"><th><input type="checkbox" id="all" aria-label="Select all shown"></th>${order.map((k) => `<th class="hd" data-sort="${k}" data-col="${k}" draggable="true" title="Click to sort, drag to move">${COLS[k].label}</th>`).join('')}<th></th></tr>
-        <tr class="flt"><th></th>${order.map((k) => {
-          const c = COLS[k];
-          if (c.text) return `<th><input type="search" data-flt="${k}" placeholder="Filter…" aria-label="Filter ${c.label}" value="${esc(flt[k] || '')}"></th>`;
-          if (!c.f) return '<th></th>';
-          return `<th><select data-flt="${k}" aria-label="Filter ${c.label}"><option value="">${c.label}: all</option>${optVals(k).map((v) =>
-            `<option value="${v === '' ? NONE : esc(v)}"${(flt[k] || '') === (v === '' ? NONE : v) ? ' selected' : ''}>${v === '' ? '(none)' : esc(c.show ? c.show(v) : v)}</option>`).join('')}</select></th>`;
-        }).join('')}<th></th></tr>`;
-    }
-    /* Time windows shared by the workstream sub-tabs and To do (same chips, same rules). */
+      { key: 'week', label: 'Week', cls: 'nowrap', sort: (t) => span(t)[0] || '9999', f: weekLabel, cell: (t) => weekLabel(t) || '—' },
+      { key: 'due', label: 'Target dates', cls: 'dates nowrap', sort: (t) => span(t)[1] || '9999', cell: (t) => (span(t)[0] ? `${fmt(span(t)[0])} – ${fmt(span(t)[1])}` : '—') },
+      { key: 'status', label: 'Status', sort: (t) => Object.keys(STATUS).indexOf(t.status), f: (t) => t.status, show: (v) => STATUS[v], cell: status },
+    ];
+    /* ws -1 = To do: open tasks of every workstream, grouped by workstream */
+    const inWs = (t) => (ws === -1 ? t.status !== 'complete' : t.workstream_id === ws);
+    /* Time windows shared by the workstream channels and To do (same chips, same rules). */
     function windowKeep(f) {
       const from = ymd(wk0), to = ymd(addDays(wk0, 6)), n1 = ymd(addDays(wk0, 7)), n2 = ymd(addDays(wk0, 20));
       return { all: () => true, today: (t) => t.status !== 'complete' && (t.due_date === today || t.due_date === ymd(addDays(new Date(), 1))),
-        current: (t) => overlaps(t, from, to), next2: (t) => overlaps(t, n1, n2), overdue: late }[f];
+        current: (t) => overlaps(t, from, to), next2: (t) => overlaps(t, n1, n2), overdue: late }[f] || (() => true);
     }
-    /* group order for To do: own saved order, else the sub-tab order */
-    const grpOrder = () => { const o = lsGet('wp-grporder') || [], pos = (w) => (o.includes(w.id) ? o.indexOf(w.id) : 999 + wsSorted().indexOf(w)); return [...wss].sort((a, b) => pos(a) - pos(b)); };
-    function render() {
-      const keep = windowKeep(filter);
-      const colOk = (t) => Object.entries(flt).every(([k, v]) => !v || (COLS[k].text ? t.task.toLowerCase().includes(v.toLowerCase()) : (COLS[k].f(t) || NONE) === v));
-      const sv = COLS[sort.key].sort;
-      const list = inWs().filter((t) => keep(t) && colOk(t))
-        .sort((a, b) => { const x = sv(a), y = sv(b); return (x < y ? -1 : x > y ? 1 : a.id - b.id) * sort.dir; });
-      const row = (t) => `<tr class="st-${t.status}${late(t) ? ' late' : ''}"><td><input type="checkbox" data-sel="${t.id}" aria-label="Select task #${t.id}"${picked.has(t.id) ? ' checked' : ''}></td>${order.map((k) => {
-        const c = COLS[k]; return `<td data-label="${c.label}" class="${c.cls || ''}">${c.cell(t)}</td>`; }).join('')}
-        <td><button class="ghost" data-edit="${t.id}">Edit</button></td></tr>`;
-      let vis = list;
-      if (ws !== -1) $('rows').innerHTML = list.map(row).join('') || `<tr><td colspan="${order.length + 2}" class="muted">No tasks in this view.</td></tr>`;
-      else {
-        /* To do: same table, grouped by workstream; groups can be dragged up/down and folded (saved per browser) */
-        const folded = new Set(lsGet('wp-fold') || []);
-        const groups = grpOrder().map((w) => ({ w, rows: list.filter((t) => t.workstream_id === w.id) })).filter((g) => g.rows.length);
-        vis = groups.filter((g) => !folded.has(g.w.id)).flatMap((g) => g.rows);
-        $('rows').innerHTML = groups.map((g) => `<tr class="grp" draggable="true" data-g="${g.w.id}" title="Drag to reorder"><td colspan="${order.length + 2}">
-          <button class="ghost" data-fold="${g.w.id}" aria-label="Collapse or expand">${folded.has(g.w.id) ? '▸' : '▾'}</button> <b>${esc(g.w.name)}</b> <span class="muted">${g.rows.length}</span></td></tr>${folded.has(g.w.id) ? '' : g.rows.map(row).join('')}`).join('')
-          || `<tr><td colspan="${order.length + 2}" class="muted">Nothing in this window.</td></tr>`;
-      }
-      shown = vis.map((t) => t.id);
-      $('sel').hidden = !picked.size; $('sel-n').textContent = picked.size;
-      const all = $('all'); if (all) { all.checked = shown.length > 0 && shown.every((i) => picked.has(i)); all.indeterminate = !all.checked && shown.some((i) => picked.has(i)); }
-      $('count').textContent = `${list.length} of ${inWs().length} tasks`;
-      $('clear').hidden = !Object.values(flt).some(Boolean);
-      document.querySelectorAll('th[data-sort]').forEach((th) => th.className = 'hd ' + (th.dataset.sort === sort.key ? (sort.dir > 0 ? 'asc' : 'desc') : ''));
+    const resetVisible = () => { $('clear').hidden = !(filters?.changed() || Object.values(table?.state.flt || {}).some(Boolean)); };
+    function makeTable() {
+      filters = FG.filters($('bar'), {
+        key: 'tasks', defs: [{ key: 'win', type: 'chips', label: 'When', default: 'all',
+          options: [['all', 'All weeks'], ['today', 'Immediate'], ['current', 'Current week'], ['next2', 'Next 2 weeks'], ['overdue', 'Overdue']] }],
+        onChange: () => table.render(),
+      });
+      table = FG.table($('tasks'), {
+        key: 'tasks', cols: COLS, rows: tasks, cards: true, select: true, defaultSort: { key: 'week', dir: 1 },
+        keep: (t) => inWs(t) && windowKeep(filters.values.win)(t),
+        rowClass: (t) => `st-${t.status}${t.status === 'complete' ? ' done' : late(t) ? ' late' : ''}`,
+        group: { active: () => ws === -1, by: (t) => t.workstream_id, get order() { return wsSorted().map((w) => String(w.id)); },
+          label: (g) => `<b>${esc(wss.find((w) => String(w.id) === g)?.name || 'Other')}</b>` },
+        onRow: (t) => openEdit(t),
+        onSelect: (ids) => { $('sel').hidden = !ids.length; $('sel-n').textContent = ids.length; },
+        onCount: (n) => { $('count').textContent = `${n} of ${tasks.filter(inWs).length} tasks`; resetVisible(); },
+        empty: 'No tasks in this view.',
+      });
+      resetVisible();
     }
-    /* workstreams = sub-tabs; edited in Admin */
+
+    /* workstreams = channels; admin order is the default, dragging saves each person's own order (kit) */
     const wsEdit = () => wss.filter((w) => w.edit !== false);
     const wsOpts = (none) => (none ? '<option value="">— no change —</option>' : '') + wsEdit().map((w) => `<option value="${w.id}">${esc(w.name)}</option>`).join('');
-    /* sub-tab order: admin order is the default; dragging saves your own order in this browser */
-    const sortTabs = (list) => { const o = lsGet('wp-wsorder') || [], pos = (w) => (o.includes(w.id) ? o.indexOf(w.id) : 999 + w.sort); return [...list].sort((a, b) => pos(a) - pos(b)); };
-    const wsSorted = () => sortTabs(wss);
-    const defWs = () => (wsEdit().some((w) => w.id === ws) ? ws : sortTabs(wsEdit())[0]?.id);  /* workstreams you may add to */
-    const subTabs = () => sortTabs([...wss, { id: -1, name: 'To do', sort: 9999 }]); /* + the To do sub-tab */
+    const wsSorted = () => FG.orderBy([...wss].sort((a, b) => a.sort - b.sort), FG.store.get(FG.key('nav:channels')) || [], (w) => w.id).filter((w) => w.id !== -1);
+    const defWs = () => (wsEdit().some((w) => w.id === ws) ? ws : wsSorted().filter((w) => w.edit !== false)[0]?.id);
+    const channels = () => [...[...wss].sort((a, b) => a.sort - b.sort).map((w) => ({ id: w.id, label: w.name })), { id: -1, label: 'To do' }];
     const drawTitle = () => { const w = wss.find((x) => x.id === ws); $('ws-title').textContent = ws === -1 ? 'To do' : w ? `# ${w.name}` : 'Tasks'; $('add').hidden = !wsEdit().length; };
-    const drawWsTabs = () => { drawTitle(); $('ws-tabs').innerHTML = subTabs().map((w) => `<button class="${w.id === ws ? 'on' : ''}" data-ws="${w.id}" draggable="true" title="Drag to reorder">${esc(w.name)}</button>`).join(''); };
     async function loadWs() {
       wss = await api('workplan/workstreams');
       if (ws !== -1 && !wss.some((w) => w.id === ws)) { const s = Number(lsGet('wp-ws')); ws = s === -1 || wss.some((w) => w.id === s) ? s : wsSorted()[0]?.id || 0; }
-      drawWsTabs();
+      shell.update({ channels: me.tabs.includes('workplan') ? channels() : [], channel: ws });
+      drawTitle();
       form.workstream_id.innerHTML = wsOpts(false); $('bulk-form').workstream_id.innerHTML = wsOpts(true);
     }
-    let wdrag = null;
-    $('ws-tabs').addEventListener('dragstart', (e) => { wdrag = Number(e.target.dataset.ws) || null; });
-    $('ws-tabs').addEventListener('dragover', (e) => { if (wdrag && e.target.closest('[data-ws]')) e.preventDefault(); });
-    $('ws-tabs').addEventListener('drop', (e) => {
-      e.preventDefault(); const to = Number(e.target.closest('[data-ws]')?.dataset.ws);
-      if (wdrag && to && to !== wdrag) {
-        const ids = subTabs().map((w) => w.id), i = ids.indexOf(to); ids.splice(ids.indexOf(wdrag), 1); ids.splice(i, 0, wdrag);
-        lsSet('wp-wsorder', ids); drawWsTabs();
-      }
-      wdrag = null;
-    });
-    $('ws-tabs').addEventListener('click', (e) => {
-      const id = Number(e.target.dataset.ws); if (!id) return;
+    function pickWs(id) {
       ws = id; lsSet('wp-ws', id);
-      picked.clear(); flt = {}; drawTitle();
+      table.picked.clear(); table.reset(); drawTitle();
       if (!location.hash.endsWith('workplan')) showTab('workplan');
-      document.querySelectorAll('#ws-tabs button').forEach((b) => b.classList.toggle('on', Number(b.dataset.ws) === ws));
-      buildHead(); render();
-    });
-    async function loadTasks() {
-      tasks = await api('workplan/tasks');
-      for (const k of Object.keys(flt)) if (flt[k] && !COLS[k].text && !optVals(k).some((v) => (v || NONE) === flt[k])) delete flt[k];
-      picked = new Set([...picked].filter(byId));
-      buildHead(); render();
+      $('sel').hidden = true;
     }
+    async function loadTasks() { tasks = await api('workplan/tasks'); table.setRows(tasks); }
     async function save(t) {
       try { await api('workplan/tasks' + (t.id ? `/${t.id}` : ''), { method: 'POST', body: t }); await loadTasks(); showMsg(msg, ''); }
       catch (e) { showMsg(msg, e.message, 'err'); }
     }
+    $('clear').addEventListener('click', () => { filters.reset(); table.reset(); });
+    $('tasks').addEventListener('change', (e) => {
+      if (!e.target.matches('select.status')) return;
+      save({ ...byId(Number(e.target.dataset.id)), status: e.target.value });
+    });
 
-    $('filters').addEventListener('click', (e) => {
-      const b = e.target.closest('[data-f]'); if (!b) return;
-      filter = b.dataset.f; lsSet('wp-view', { filter, sort });
-      document.querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', c === b));
-      render();
-    });
-    const head = $('head');
-    head.addEventListener('click', (e) => {
-      const k = e.target.dataset.sort; if (!k) return;
-      sort = { key: k, dir: sort.key === k ? -sort.dir : 1 }; lsSet('wp-view', { filter, sort }); render();
-    });
-    head.addEventListener('input', (e) => { const k = e.target.dataset.flt; if (k) { flt[k] = e.target.value; render(); } });
-    $('clear').addEventListener('click', () => { flt = {}; buildHead(); render(); });
-    $('rows').addEventListener('click', (e) => {
-      const id = Number(e.target.closest('[data-fold]')?.dataset.fold); if (!id) return;
-      const f = new Set(lsGet('wp-fold') || []); f.has(id) ? f.delete(id) : f.add(id); lsSet('wp-fold', [...f]); render();
-    });
-    let gdrag = null;
-    $('rows').addEventListener('dragstart', (e) => { gdrag = Number(e.target.closest?.('tr.grp')?.dataset.g) || null; });
-    $('rows').addEventListener('dragover', (e) => { const g = e.target.closest('tr.grp'); if (gdrag && g) { e.preventDefault(); $('rows').querySelectorAll('.over').forEach((x) => x.classList.remove('over')); g.classList.add('over'); } });
-    $('rows').addEventListener('drop', (e) => {
-      e.preventDefault(); const to = Number(e.target.closest('tr.grp')?.dataset.g);
-      if (gdrag && to && to !== gdrag) { const ids = grpOrder().map((w) => w.id), i = ids.indexOf(to); ids.splice(ids.indexOf(gdrag), 1); ids.splice(i, 0, gdrag); lsSet('wp-grporder', ids); render(); }
-      gdrag = null;
-    });
-    $('rows').addEventListener('dragend', () => { gdrag = null; $('rows').querySelectorAll('.over').forEach((x) => x.classList.remove('over')); });
     /* select rows, edit shared fields on all of them (task text and dependencies stay per task) */
-    head.addEventListener('change', (e) => { if (e.target.id !== 'all') return; shown.forEach((i) => (e.target.checked ? picked.add(i) : picked.delete(i))); render(); });
-    $('rows').addEventListener('change', (e) => { const i = Number(e.target.dataset.sel); if (!i) return; e.target.checked ? picked.add(i) : picked.delete(i); render(); });
-    $('unsel').addEventListener('click', () => { picked.clear(); render(); });
+    const pickedIds = () => [...table.picked].map(Number);
+    $('unsel').addEventListener('click', () => { table.picked.clear(); table.render(); $('sel').hidden = true; });
     /* Copy selected task names as a numbered list (screen order), ready to paste into WhatsApp, email, etc. */
     $('copy').addEventListener('click', async () => {
-      const ids = [...shown.filter((i) => picked.has(i)), ...[...picked].filter((i) => !shown.includes(i))].filter(byId);
+      const shown = table.shown().map(Number), picked = pickedIds();
+      const ids = [...shown.filter((i) => picked.includes(i)), ...picked.filter((i) => !shown.includes(i))].filter(byId);
       const text = ids.map((i, n) => `${n + 1}. ${byId(i).task.replace(/\s+/g, ' ').trim()}`).join('\n');
       try { await navigator.clipboard.writeText(text); }
       catch { const ta = Object.assign(document.createElement('textarea'), { value: text }); document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
@@ -403,36 +268,18 @@
     });
     const bf = $('bulk-form');
     bf.status.innerHTML = '<option value="">— no change —</option>' + Object.entries(STATUS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
-    $('bulk').addEventListener('click', () => { fillOptions(defWs(), null); bf.reset(); $('bulk-title').textContent = `Edit ${picked.size} selected task${picked.size > 1 ? 's' : ''}`; $('bulk-dlg').showModal(); });
+    $('bulk').addEventListener('click', () => { const n = table.picked.size; fillOptions(defWs(), null); bf.reset(); $('bulk-title').textContent = `Edit ${n} selected task${n > 1 ? 's' : ''}`; $('bulk-dlg').showModal(); });
     $('bulk-cancel').addEventListener('click', () => $('bulk-dlg').close());
     bf.addEventListener('submit', async (e) => {
       e.preventDefault();
       const changes = Object.fromEntries([...new FormData(bf)].filter(([, v]) => v));
       if (!Object.keys(changes).length) return showMsg(msg, 'Fill at least one field to change.', 'err');
       $('bulk-dlg').close();
-      try { await api('workplan/tasks/bulk', { method: 'POST', body: { ids: [...picked], changes } }); picked.clear(); await loadTasks(); showMsg(msg, ''); }
+      try { await api('workplan/tasks/bulk', { method: 'POST', body: { ids: pickedIds(), changes } }); table.picked.clear(); $('sel').hidden = true; await loadTasks(); showMsg(msg, ''); }
       catch (err) { showMsg(msg, err.message, 'err'); }
     });
-    /* drag a column header to move it */
-    let drag = null;
-    head.addEventListener('dragstart', (e) => { drag = e.target.dataset?.col; if (drag) e.dataTransfer.setData('text/plain', drag); });
-    head.addEventListener('dragover', (e) => { const th = e.target.closest('th[data-col]'); if (drag && th) { e.preventDefault(); head.querySelectorAll('.over').forEach((x) => x.classList.remove('over')); th.classList.add('over'); } });
-    head.addEventListener('drop', (e) => {
-      const to = e.target.closest('th[data-col]')?.dataset.col; e.preventDefault();
-      if (drag && to && to !== drag) {
-        const i = order.indexOf(to); order = order.filter((k) => k !== drag); order.splice(i, 0, drag);
-        try { localStorage.setItem('wp-cols', JSON.stringify(order)); } catch {}
-        buildHead(); render();
-      }
-      drag = null;
-    });
-    head.addEventListener('dragend', () => { drag = null; head.querySelectorAll('.over').forEach((x) => x.classList.remove('over')); });
-    $('rows').addEventListener('change', (e) => {
-      if (!e.target.matches('select.status')) return;
-      save({ ...byId(Number(e.target.dataset.id)), status: e.target.value });
-    });
 
-    /* add / edit dialog */
+    /* add / edit dialog (click a row to edit it) */
     const form = $('edit-form');
     form.status.innerHTML = Object.entries(STATUS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
     /* Suggestions (Project, Category, Depends on) come only from open tasks in the chosen workstream, not completed or other-workstream ones. */
@@ -460,7 +307,6 @@
       $('edit').showModal();
     }
     $('add').addEventListener('click', () => openEdit(null));
-    $('rows').addEventListener('click', (e) => { const id = e.target.dataset.edit; if (id) openEdit(byId(Number(id))); });
     $('edit-cancel').addEventListener('click', () => $('edit').close());
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -479,12 +325,12 @@
     /* admin: workstreams */
     function drawWsAdmin() {
       $('wslist').innerHTML = wss.map((w, i) => `<tr><td><input value="${esc(w.name)}" data-wsname="${w.id}" maxlength="40" aria-label="Workstream name"></td>
-        <td class="nowrap"><button class="ghost" data-mv="${w.id}" data-d="-1"${i === 0 ? ' disabled' : ''} aria-label="Move up">▲</button>
-        <button class="ghost" data-mv="${w.id}" data-d="1"${i === wss.length - 1 ? ' disabled' : ''} aria-label="Move down">▼</button>
-        <button class="danger" data-wsdel="${w.id}">Delete</button></td></tr>`).join('');
+        <td class="nowrap"><button class="fg-btn small ghost" data-mv="${w.id}" data-d="-1"${i === 0 ? ' disabled' : ''} aria-label="Move up">▲</button>
+        <button class="fg-btn small ghost" data-mv="${w.id}" data-d="1"${i === wss.length - 1 ? ' disabled' : ''} aria-label="Move down">▼</button>
+        <button class="fg-btn small danger" data-wsdel="${w.id}">Delete</button></td></tr>`).join('');
     }
     async function wsDo(fn) {
-      try { await fn(); await loadWs(); drawWsAdmin(); buildHead(); render(); showMsg(msg, ''); }
+      try { await fn(); await loadWs(); drawWsAdmin(); table?.render(); showMsg(msg, ''); }
       catch (e) { showMsg(msg, e.message, 'err'); await loadWs().catch(() => {}); drawWsAdmin(); }
     }
     $('wslist').addEventListener('change', (e) => { const id = e.target.dataset.wsname; if (id) wsDo(() => api(`workplan/workstreams/${id}`, { method: 'POST', body: { name: e.target.value } })); });
@@ -531,13 +377,16 @@
     /* start */
     try {
       me = await api('workplan/me');
-      $('who').textContent = me.email;
+      FG.configure({ app: 'workplan', user: me.email });
+      migrate();
       $('people').innerHTML = me.people.map((n) => `<option value="${esc(n)}">`).join('');
-      const allowed = Object.keys(TABS).filter((t) => me.tabs.includes(t));
-      $('tabs').innerHTML = allowed.map((t) => `<button class="tab" data-tab="${t}">${TABS[t]}</button>`).join('');
-      $('tabs').addEventListener('click', (e) => { if (e.target.dataset.tab) showTab(e.target.dataset.tab); });
+      allowed = Object.keys(TABS).filter((t) => me.tabs.includes(t));
+      shell = FG.shell($('side'), { app: 'workplan', name: 'Planner', icon: '/assets/planner-192.png', home: '/workplan/', user: me.email,
+        sections: allowed.map((t) => ({ id: t, label: TABS[t] })), onSection: showTab,
+        channelsTitle: 'Workstreams', channels: [], onChannel: pickWs });
+      FG.sections($('admin-cards'), { key: 'admin' });
       if (allowed.includes('workplan') || allowed.includes('admin')) await loadWs();
-      if (allowed.includes('workplan')) await loadTasks();
+      if (allowed.includes('workplan')) { tasks = await api('workplan/tasks'); makeTable(); }
       if (!allowed.length) showMsg(msg, 'No tabs yet. Ask a Planner admin to give you access.');
       else showTab(allowed.includes(location.hash.slice(1)) ? location.hash.slice(1) : allowed[0]);
       addEventListener('hashchange', () => { if (allowed.includes(location.hash.slice(1))) showTab(location.hash.slice(1)); });

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>FortifyGrid UI kit</title>
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="fg-ui.css">
+  <script src="fg-ui.js"></script>
+</head>
+<body style="margin:0">
+<!-- Reference page for the shared UI (platform/UI_PRINCIPLES.md). Copy these patterns; sample data only. -->
+<div class="fg-app">
+  <aside id="side"></aside>
+  <main class="fg-work">
+    <div class="fg-top"><h1 id="title">Tasks</h1><span class="fg-pill">Demo data</span><span class="fg-grow"></span><button class="fg-btn">+ Add</button></div>
+
+    <section data-tab="tasks">
+      <div class="fg-bar" id="bar">
+        <span class="fg-grow"></span>
+        <span class="fg-selbar" id="sel" hidden><b id="sel-n">0</b> selected <button class="fg-btn small ghost" id="unsel">Clear</button></span>
+        <span class="fg-count" id="count"></span>
+        <button class="fg-link" id="reset" hidden>Reset filters</button>
+      </div>
+      <div id="tasks"></div>
+    </section>
+
+    <section data-tab="cards" hidden>
+      <p class="fg-muted">Click a card's title bar to fold it; drag ⠿ to move it; double-click ⠿ to reset.</p>
+      <div id="cards">
+        <section class="fg-section" data-id="summary"><div class="fg-section-head"><span class="fg-handle">⠿</span><span class="fg-chev">▾</span><h2>Summary</h2></div>
+          <div class="fg-section-body"><p>Open tasks, totals, anything short.</p></div></section>
+        <section class="fg-section" data-id="files"><div class="fg-section-head"><span class="fg-handle">⠿</span><span class="fg-chev">▾</span><h2>Files</h2><button class="fg-btn small ghost">Upload</button></div>
+          <div class="fg-section-body"><div id="files"></div></div></section>
+        <section class="fg-section" data-id="notes"><div class="fg-section-head"><span class="fg-handle">⠿</span><span class="fg-chev">▾</span><h2>Notes</h2></div>
+          <div class="fg-section-body"><p class="fg-muted">Free text.</p></div></section>
+      </div>
+    </section>
+  </main>
+</div>
+<script>
+  FG.configure({ app: 'demo', user: 'demo@fortifygrid.com' });
+  const STATUS = { todo: 'To do', in_progress: 'In progress', blocked: 'Blocked', complete: 'Complete' };
+  const streams = [{ id: 1, label: 'Work' }, { id: 2, label: 'Family' }, { id: 3, label: 'Others' }];
+  const today = new Date().toISOString().slice(0, 10);
+  const day = (n) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+  const tasks = Array.from({ length: 40 }, (_, i) => ({
+    id: i + 1, task: ['Site visit', 'Tariff review', 'Battery sizing', 'Permit filing', 'Board deck', 'Call utility'][i % 6] + ` #${i + 1}`,
+    project: ['Comstock', 'NYPA', 'Internal'][i % 3], ws: (i % 3) + 1, status: Object.keys(STATUS)[i % 4], due: day((i % 15) - 5),
+    files: i % 5 === 0 ? [{ name: 'drawing.pdf', size: '1.2 MB' }, { name: 'bom.xlsx', size: '88 KB' }] : [],
+  }));
+
+  let tab = 'tasks'; let ws = 'all';
+  const shell = FG.shell(document.getElementById('side'), {
+    app: 'demo', name: 'UI kit demo', icon: '/assets/planner-192.png', home: './demo.html',
+    sections: [{ id: 'tasks', label: 'Tasks' }, { id: 'cards', label: 'Cards' }, { id: 'admin', label: 'Admin', locked: true }], current: tab,
+    onSection(id) { tab = id; document.querySelectorAll('[data-tab]').forEach((s) => { s.hidden = s.dataset.tab !== id; }); document.getElementById('title').textContent = id === 'tasks' ? 'Tasks' : 'Cards'; },
+    channelsTitle: 'Workstreams', channels: [{ id: 'all', label: 'To do (grouped)' }, ...streams], channel: ws,
+    onChannel(id) { ws = id; table.render(); }, user: 'demo@fortifygrid.com',
+  });
+
+  const late = (t) => t.status !== 'complete' && t.due < today;
+  const filters = FG.filters(document.getElementById('bar'), {
+    key: 'tasks',
+    defs: [
+      { key: 'q', type: 'search', label: 'Search tasks' },
+      { key: 'win', type: 'chips', label: 'When', default: 'all', options: [['all', 'All'], ['overdue', 'Overdue'], ['week', 'Next 7 days']] },
+      { key: 'open', type: 'toggle', label: 'Open only', default: true },
+    ],
+    onChange: () => table.render(),
+  });
+  const keep = (t) => {
+    const v = filters.values;
+    return (ws === 'all' || t.ws === ws) && (!v.open || t.status !== 'complete')
+      && (!v.q || t.task.toLowerCase().includes(v.q.toLowerCase()))
+      && (v.win === 'all' || (v.win === 'overdue' ? late(t) : t.due >= today && t.due <= day(7)));
+  };
+  const table = FG.table(document.getElementById('tasks'), {
+    key: 'tasks', rows: tasks, cards: true, select: true, keep, defaultSort: { key: 'due', dir: 1 },
+    cols: [
+      { key: 'task', label: 'Task', main: true, sort: (t) => t.task, text: (t) => t.task, cell: (t) => `<b>${FG.esc(t.task)}</b>` },
+      { key: 'project', label: 'Project', sort: (t) => t.project, f: (t) => t.project },
+      { key: 'status', label: 'Status', sort: (t) => Object.keys(STATUS).indexOf(t.status), f: (t) => t.status, show: (v) => STATUS[v], cell: (t) => STATUS[t.status] },
+      { key: 'due', label: 'Due', cls: 'nowrap', sort: (t) => t.due, cell: (t) => t.due, help: 'Target finish date. Overdue rows are tinted red.' },
+      { key: 'files', label: 'Files', sort: (t) => t.files.length, cell: (t) => (t.files.length ? `<span class="fg-badge">${t.files.length}</span>` : '—') },
+    ],
+    rowClass: (t) => (t.status === 'complete' ? 'done' : late(t) ? 'late' : ''),
+    group: { active: () => ws === 'all', by: (t) => streams.find((s) => s.id === t.ws).label },
+    sub: (t) => (t.files.length ? `<table class="fg-table"><thead><tr><th>File</th><th>Size</th></tr></thead><tbody>${t.files.map((f) => `<tr><td>${FG.esc(f.name)}</td><td>${f.size}</td></tr>`).join('')}</tbody></table>` : null),
+    onSelect: (ids) => { document.getElementById('sel').hidden = !ids.length; document.getElementById('sel-n').textContent = ids.length; },
+    onCount: (shown, total, colFilters) => { document.getElementById('count').textContent = `${shown} of ${total} tasks`; document.getElementById('reset').hidden = !colFilters && !filters.changed(); },
+    empty: 'No tasks in this view.',
+  });
+  document.getElementById('unsel').onclick = () => { table.picked.clear(); table.render(); document.getElementById('sel').hidden = true; };
+  document.getElementById('reset').onclick = () => { filters.reset(); table.reset(); };
+
+  FG.sections(document.getElementById('cards'), { key: 'demo-cards' });
+  FG.table(document.getElementById('files'), {
+    key: 'files', paged: true, rows: Array.from({ length: 60 }, (_, i) => ({ id: i + 1, name: `file_${i + 1}.pdf`, kb: (i * 37) % 900 })),
+    cols: [{ key: 'name', label: 'Name', sort: (r) => r.name, text: (r) => r.name }, { key: 'kb', label: 'Size (KB)', sort: (r) => r.kb, cell: (r) => r.kb }],
+  });
+</script>
+</body>
+</html>

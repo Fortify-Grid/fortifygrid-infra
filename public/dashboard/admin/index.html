@@ -5,27 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FortifyGrid Admin</title>
   <link rel="icon" type="image/png" href="/assets/favicon.png">
-  <link href="https://fonts.googleapis.com/css2?family=Old+Standard+TT&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/portal.css">
+  <link rel="stylesheet" href="/platform/v1/fg-ui.css">
+  <script src="/platform/v1/fg-ui.js"></script>
+  <style> .fg-work h3 { margin: 24px 0 8px; } .fg-table select { min-width: 90px; } </style>
 </head>
 <body>
-  <header>
-    <a href="/"><img src="/assets/fortify-logo.svg" alt="FortifyGrid"></a>
-    <nav>
-      <span id="who" class="muted"></span>
-      <a href="/">Apps</a>
-      <a href="/cdn-cgi/access/logout">Sign out</a>
-    </nav>
-  </header>
-  <main>
-    <h1>Admin</h1>
-    <p class="muted" id="status"></p>
-    <div class="tabs" role="tablist">
-      <button class="tab" data-tab="users">Users</button>
-      <button class="tab" data-tab="apps">Apps</button>
-      <button class="tab" data-tab="settings">Settings</button>
-      <button class="tab" data-tab="activity">Activity</button>
-    </div>
+  <!-- Portal admin. Shared UI (shell, tables, filters): /platform/v1/, rules platform/UI_PRINCIPLES.md. -->
+  <div class="fg-app">
+  <aside id="side"></aside>
+  <main class="fg-work">
+    <div class="fg-top"><h1 id="title">Users</h1><span class="fg-muted" id="status"></span></div>
     <div id="msg" class="msg" hidden></div>
 
     <section data-panel="users">
@@ -38,7 +28,8 @@
         <label class="check"><input type="checkbox" name="invite" checked> Send invite</label>
         <button type="submit">Add / update</button>
       </form>
-      <div class="table-wrap"><table><thead id="users-head"></thead><tbody id="users"></tbody></table></div>
+      <div class="fg-bar"><span class="fg-grow"></span><span class="fg-count" id="users-count"></span></div>
+      <div id="users"></div>
       <p class="row-actions" style="margin-top:12px"><button class="ghost" id="resync">Re-sync Cloudflare Access</button></p>
     </section>
 
@@ -55,37 +46,49 @@
         <label class="check"><input type="checkbox" name="provision" checked> Create Cloudflare Access</label>
         <button type="submit">Add / update app</button>
       </form>
-      <div class="table-wrap"><table>
-        <thead><tr><th>App</th><th>Folder</th><th>URL</th><th>Roles</th><th>Cloudflare Access</th><th>On</th><th></th></tr></thead>
-        <tbody id="apps"></tbody>
-      </table></div>
+      <div id="apps"></div>
       <div id="tabs-editor" hidden>
         <h3 id="tabs-title"></h3>
         <p class="muted">Tick which tabs each role can see. Admins listed in ADMIN_EMAILS always see everything.</p>
-        <div class="table-wrap"><table><thead id="tabs-head"></thead><tbody id="tabs-body"></tbody></table></div>
+        <div class="fg-table-wrap"><table class="fg-table"><thead id="tabs-head"></thead><tbody id="tabs-body"></tbody></table></div>
         <p class="row-actions" style="margin-top:12px"><button id="tabs-save">Save tabs</button><button class="ghost" id="tabs-close">Close</button></p>
       </div>
     </section>
 
     <section data-panel="settings" hidden>
+      <h3>Theme colours</h3>
+      <p class="muted">Every app on the shared UI (portal, Planner, heatmap, query, revenue, IDE) uses these within a minute.</p>
+      <form class="add" id="theme">
+        <label>Main (sidebar, main buttons)<input type="color" name="theme_main"></label>
+        <label>Accent 1 (open section)<input type="color" name="theme_accent1"></label>
+        <label>Accent 2 (chosen chips, hover)<input type="color" name="theme_accent2"></label>
+        <button type="submit">Save colours</button><button type="button" class="ghost" id="theme-reset">Back to defaults</button>
+      </form>
+      <h3>Other settings</h3>
       <p class="muted">Site configuration. <code>dashboard_notice</code> shows as a banner on everyone's dashboard.</p>
       <form class="add" id="add-setting">
         <label>Key<input type="text" name="key" required placeholder="dashboard_notice" pattern="[a-z][a-z0-9_]{1,40}"></label>
         <label style="flex:1 1 320px">Value<input type="text" name="value"></label>
         <button type="submit">Save</button>
       </form>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Key</th><th>Value</th><th>Updated</th><th></th></tr></thead>
-        <tbody id="settings"></tbody>
-      </table></div>
+      <div id="settings"></div>
       <h3>Sign-in</h3>
-      <div class="table-wrap"><table><tbody id="logins"></tbody></table></div>
+      <div class="fg-table-wrap"><table class="fg-table"><tbody id="logins"></tbody></table></div>
+    </section>
+
+    <section data-panel="docs" hidden>
+      <p class="muted">API routes and database tables of every app, generated from code annotations (<code>npm run docs</code>; CI fails if they are stale).
+        Each app also has its own Documentation section, for its admins.</p>
+      <div class="fg-bar"><label>App <select id="docs-app"></select></label><a id="docs-open" target="_blank" rel="noopener" hidden>Open in the app ↗</a></div>
+      <div id="docs-box"></div>
     </section>
 
     <section data-panel="activity" hidden>
-      <div class="table-wrap"><table><tbody id="audit"></tbody></table></div>
+      <div class="fg-bar"><span class="fg-grow"></span><span class="fg-count" id="audit-count"></span></div>
+      <div id="audit"></div>
     </section>
   </main>
+  </div>
 
   <script type="module">
     import { api, esc, showMsg } from '/portal.js';
@@ -93,15 +96,35 @@
     const msg = $('msg');
     const when = (s) => (s ? esc(s.slice(0, 16).replace('T', ' ')) : 'never');
     let state = { users: [], apps: [], settings: [], logins: [] };
+    const tables = {};
 
-    /* tabs (remembered in the URL hash) */
+    /* sections (sidebar; remembered in the URL hash) */
+    const SECTIONS = { users: 'Users', apps: 'Apps', settings: 'Settings', docs: 'Documentation', activity: 'Activity' };
+    let shell;
     function showTab(name) {
-      document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('on', b.dataset.tab === name));
+      if (!SECTIONS[name]) name = 'users';
       document.querySelectorAll('[data-panel]').forEach((p) => { p.hidden = p.dataset.panel !== name; });
+      $('title').textContent = SECTIONS[name];
+      shell?.update({ current: name });
       if (location.hash !== `#${name}`) history.replaceState(null, '', `#${name}`);
       if (name === 'activity') loadAudit().catch((e) => showMsg(msg, e.message, 'err'));
+      if (name === 'docs') showDocs();
     }
-    document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+
+    /* documentation: this portal's docs inline; other apps' docs open in that app (its own /api/docs needs its login) */
+    function showDocs() {
+      const sel = $('docs-app');
+      if (!sel.options.length) {
+        sel.innerHTML = '<option value="portal">Portal, admin, Planner</option>' + state.apps.filter((a) => a.id !== 'portal' && a.url)
+          .map((a) => `<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('');
+        sel.addEventListener('change', showDocs);
+      }
+      const app = state.apps.find((a) => a.id === sel.value);
+      const link = $('docs-open');
+      if (!app) { link.hidden = true; FG.docs($('docs-box'), { url: '/api/admin/docs' }); return; }
+      link.hidden = false; link.href = `${app.url.replace(/#.*$/, '')}#docs`;
+      $('docs-box').innerHTML = `<p>${esc(app.name)} keeps its documentation in its own Documentation section (admins of that app). <a href="${esc(link.href)}" target="_blank" rel="noopener">Open ${esc(app.name)} → Documentation ↗</a></p>`;
+    }
     addEventListener('hashchange', () => showTab(location.hash.slice(1) || 'users'));
 
     const roleSelect = (app, value, attrs = '') =>
@@ -141,35 +164,43 @@
       ].join(' ');
 
       $('app-fields').innerHTML = apps.map((a) => `<label>${esc(a.name)}${roleSelect(a, '', 'name="app"')}</label>`).join('');
-      $('users-head').innerHTML =
-        `<tr><th>User</th>${apps.map((a) => `<th>${esc(a.name)}</th>`).join('')}<th>Admin</th><th>Active</th><th>Last seen</th><th></th></tr>`;
-      $('users').innerHTML = state.users.map((u) => `
-        <tr data-email="${esc(u.email)}">
-          <td><b>${esc(u.email)}</b><br><span class="muted">${esc(u.name)}${u.bootstrap ? ' · owner' : ''}</span></td>
-          ${apps.map((a) => `<td>${roleSelect(a, u.apps[a.id] || '', 'class="edit"')}</td>`).join('')}
-          <td><input type="checkbox" class="edit" data-field="is_admin"${u.is_admin ? ' checked' : ''}></td>
-          <td><input type="checkbox" class="edit" data-field="active"${u.active ? ' checked' : ''}></td>
-          <td class="muted">${when(u.last_seen_at)}</td>
-          <td class="row-actions"><button class="ghost" data-act="invite">Invite</button><button class="danger" data-act="delete">Remove</button></td>
-        </tr>`).join('') || '<tr><td>No users yet.</td></tr>';
+      const yes = (v) => (v ? 'yes' : 'no');
+      tables.users ||= FG.table($('users'), { key: 'users', cards: true, empty: 'No users yet.', id: (u) => u.email, defaultSort: { key: 'user', dir: 1 },
+        onCount: (n, total) => { $('users-count').textContent = `${n} of ${total} users`; }, cols: [] });
+      tables.users.setCols([
+        { key: 'user', label: 'User', main: true, sort: (u) => u.email, text: (u) => `${u.email} ${u.name}`,
+          cell: (u) => `<b>${esc(u.email)}</b><br><span class="muted">${esc(u.name)}${u.bootstrap ? ' · owner' : ''}</span>` },
+        ...apps.map((a) => ({ key: `app_${a.id}`, label: a.name, sort: (u) => u.apps[a.id] || '', f: (u) => u.apps[a.id] || '', cell: (u) => roleSelect(a, u.apps[a.id] || '', 'class="edit"') })),
+        { key: 'admin', label: 'Admin', sort: (u) => (u.is_admin ? 0 : 1), f: (u) => yes(u.is_admin), cell: (u) => `<input type="checkbox" class="edit" data-field="is_admin"${u.is_admin ? ' checked' : ''} aria-label="Admin">` },
+        { key: 'active', label: 'Active', sort: (u) => (u.active ? 0 : 1), f: (u) => yes(u.active), cell: (u) => `<input type="checkbox" class="edit" data-field="active"${u.active ? ' checked' : ''} aria-label="Active">` },
+        { key: 'seen', label: 'Last seen', cls: 'nowrap', sort: (u) => u.last_seen_at || '', cell: (u) => `<span class="muted">${when(u.last_seen_at)}</span>` },
+        { key: 'do', label: '', cell: () => '<span class="row-actions"><button class="ghost" data-act="invite">Invite</button><button class="danger" data-act="delete">Remove</button></span>' },
+      ]);
+      tables.users.setRows(state.users);
 
-      $('apps').innerHTML = state.apps.map((a) => `
-        <tr data-id="${esc(a.id)}">
-          <td><b>${esc(a.name)}</b><br><span class="muted">${esc(a.id)} · ${esc(a.description)}</span></td>
-          <td>${esc(a.folder) || '<span class="muted">—</span>'}</td>
-          <td><a href="${esc(a.url)}">${esc(a.url)}</a></td>
-          <td>${esc(a.roles.join(', '))}</td>
-          <td class="muted">${a.access_aud ? `ready<br><small>group ${esc(a.access_group_id.slice(0, 8))}…</small>` : 'not set up'}</td>
-          <td><input type="checkbox" data-act="toggle"${a.enabled ? ' checked' : ''}></td>
-          <td class="row-actions"><button class="ghost" data-act="tabs">Tabs</button><button class="ghost" data-act="edit">Edit</button>${a.access_aud ? '' : '<button data-act="provision">Create Access</button>'}</td>
-        </tr>`).join('') || '<tr><td>No apps yet.</td></tr>';
+      tables.apps ||= FG.table($('apps'), { key: 'apps', cards: true, empty: 'No apps yet.', id: (a) => a.id, cols: [
+        { key: 'app', label: 'App', main: true, sort: (a) => a.name.toLowerCase(), text: (a) => `${a.name} ${a.id} ${a.description}`,
+          cell: (a) => `<b>${esc(a.name)}</b><br><span class="muted">${esc(a.id)} · ${esc(a.description)}</span>` },
+        { key: 'folder', label: 'Folder', sort: (a) => a.folder, f: (a) => a.folder, cell: (a) => esc(a.folder) || '<span class="muted">—</span>' },
+        { key: 'url', label: 'URL', sort: (a) => a.url, cell: (a) => `<a href="${esc(a.url)}">${esc(a.url)}</a>` },
+        { key: 'roles', label: 'Roles', cell: (a) => esc(a.roles.join(', ')) },
+        { key: 'access', label: 'Cloudflare Access', f: (a) => (a.access_aud ? 'ready' : 'not set up'),
+          cell: (a) => `<span class="muted">${a.access_aud ? `ready<br><small>group ${esc(a.access_group_id.slice(0, 8))}…</small>` : 'not set up'}</span>` },
+        { key: 'on', label: 'On', sort: (a) => (a.enabled ? 0 : 1), f: (a) => yes(a.enabled), cell: (a) => `<input type="checkbox" data-act="toggle"${a.enabled ? ' checked' : ''} aria-label="Enabled">` },
+        { key: 'do', label: '', cell: (a) => `<span class="row-actions"><button class="ghost" data-act="tabs">Tabs</button><button class="ghost" data-act="edit">Edit</button>${a.access_aud ? '' : '<button data-act="provision">Create Access</button>'}</span>` },
+      ] });
+      tables.apps.setRows(state.apps);
 
       $('folders').innerHTML = [...new Set(state.apps.map((a) => a.folder).filter(Boolean))].map((f) => `<option value="${esc(f)}">`).join('');
-      $('settings').innerHTML = state.settings.map((s) => `
-        <tr data-key="${esc(s.key)}"><td><code>${esc(s.key)}</code></td><td>${esc(s.value)}</td>
-        <td class="muted">${when(s.updated_at)} · ${esc(s.updated_by)}</td>
-        <td class="row-actions"><button class="ghost" data-act="edit">Edit</button><button class="danger" data-act="delete">Delete</button></td></tr>`).join('')
-        || '<tr><td class="muted">No settings yet.</td></tr>';
+      tables.settings ||= FG.table($('settings'), { key: 'settings', cards: true, empty: 'No settings yet.', id: (x) => x.key, cols: [
+        { key: 'key', label: 'Key', main: true, sort: (x) => x.key, text: (x) => x.key, cell: (x) => `<code>${esc(x.key)}</code>` },
+        { key: 'value', label: 'Value', text: (x) => x.value, cell: (x) => esc(x.value) },
+        { key: 'updated', label: 'Updated', sort: (x) => x.updated_at, cell: (x) => `<span class="muted">${when(x.updated_at)} · ${esc(x.updated_by)}</span>` },
+        { key: 'do', label: '', cell: () => '<span class="row-actions"><button class="ghost" data-act="edit">Edit</button><button class="danger" data-act="delete">Delete</button></span>' },
+      ] });
+      tables.settings.setRows(state.settings);
+      // Theme form: saved value, else the kit default.
+      for (const k of Object.keys(THEME)) $('theme')[k].value = state.settings.find((x) => x.key === k)?.value || DEFAULTS[k];
       $('logins').innerHTML = state.logins.length
         ? state.logins.map((l) => `<tr><td>${esc(l.name)}</td><td class="muted">${esc(l.type)}</td></tr>`).join('')
         : '<tr><td class="muted">Login methods are managed in Cloudflare Zero Trust → Settings → Authentication (Google + One-time PIN).</td></tr>';
@@ -178,9 +209,15 @@
     async function load() { state = await api('admin/overview'); render(); }
     async function loadAudit() {
       const rows = await api('admin/audit');
-      $('audit').innerHTML = rows.map((a) =>
-        `<tr><td class="muted">${when(a.at)}</td><td>${esc(a.actor)}</td><td>${esc(a.action)}</td><td>${esc(a.target)}</td><td class="muted">${esc(a.detail)}</td></tr>`).join('')
-        || '<tr><td class="muted">Nothing yet.</td></tr>';
+      tables.audit ||= FG.table($('audit'), { key: 'audit', paged: true, cards: true, empty: 'Nothing yet.', defaultSort: { key: 'at', dir: -1 },
+        onCount: (n, total) => { $('audit-count').textContent = `${n} of ${total} (newest 300)`; }, cols: [
+          { key: 'at', label: 'When', cls: 'nowrap', sort: (a) => a.at, cell: (a) => `<span class="muted">${when(a.at)}</span>` },
+          { key: 'actor', label: 'Who', sort: (a) => a.actor, f: (a) => a.actor },
+          { key: 'action', label: 'What', main: true, sort: (a) => a.action, f: (a) => a.action },
+          { key: 'target', label: 'On', text: (a) => a.target },
+          { key: 'detail', label: 'Detail', text: (a) => a.detail, cell: (a) => `<span class="muted">${esc(a.detail)}</span>` },
+        ] });
+      tables.audit.setRows(rows);
     }
     const run = (fn) => async (e) => { try { await fn(e); } catch (err) { showMsg(msg, err.message, 'err'); await load().catch(() => {}); } };
 
@@ -197,7 +234,7 @@
       await load();
     }));
     function userPayload(tr) {
-      const u = state.users.find((x) => x.email === tr.dataset.email), apps = {};
+      const u = state.users.find((x) => x.email === tr.dataset.id), apps = {};
       tr.querySelectorAll('select[data-app]').forEach((s) => { if (s.value) apps[s.dataset.app] = s.value; });
       // Keep roles in disabled apps (not shown as columns).
       for (const a of state.apps) if (!a.enabled && u.apps[a.id]) apps[a.id] = u.apps[a.id];
@@ -206,13 +243,13 @@
     $('users').addEventListener('change', run(async (e) => {
       if (!e.target.classList.contains('edit')) return;
       const tr = e.target.closest('tr');
-      report(await api('admin/users', { method: 'POST', body: userPayload(tr) }), `Updated ${tr.dataset.email}.`);
+      report(await api('admin/users', { method: 'POST', body: userPayload(tr) }), `Updated ${tr.dataset.id}.`);
       await load();
     }));
     $('users').addEventListener('click', run(async (e) => {
       const act = e.target.dataset.act;
       if (!act) return;
-      const email = e.target.closest('tr').dataset.email;
+      const email = e.target.closest('tr').dataset.id;
       if (act === 'delete') {
         if (!confirm(`Remove ${email}? They lose access to every app.`)) return;
         report(await api(`admin/users/${encodeURIComponent(email)}`, { method: 'DELETE' }), `Removed ${email}.`);
@@ -287,6 +324,26 @@
       openTabs(state.apps.find((x) => x.id === tabsApp.id));
     }));
 
+    /* theme colours (settings theme_main / theme_accent1 / theme_accent2 → kit tokens via /platform/v1/theme.css) */
+    const THEME = { theme_main: '--fg-mint', theme_accent1: '--fg-ice', theme_accent2: '--fg-apricot' };
+    const DEFAULTS = { theme_main: '#98ff98', theme_accent1: '#bae6fd', theme_accent2: '#fdba74' };
+    const preview = () => { for (const [k, tok] of Object.entries(THEME)) document.documentElement.style.setProperty(tok, $('theme')[k].value); };
+    $('theme').addEventListener('input', preview);
+    $('theme').addEventListener('submit', run(async (e) => {
+      e.preventDefault();
+      for (const k of Object.keys(THEME)) await api('admin/settings', { method: 'POST', body: { key: k, value: $('theme')[k].value } });
+      showMsg(msg, 'Saved theme colours. Every app shows them within a minute (on its next page load).', 'ok');
+      await load();
+    }));
+    $('theme-reset').addEventListener('click', run(async () => {
+      if (!confirm('Go back to the default colours (mint, ice blue, apricot) in every app?')) return;
+      for (const k of Object.keys(THEME)) if (state.settings.some((x) => x.key === k)) await api(`admin/settings/${encodeURIComponent(k)}`, { method: 'DELETE' });
+      for (const [k, v] of Object.entries(DEFAULTS)) $('theme')[k].value = v;
+      document.documentElement.removeAttribute('style');
+      showMsg(msg, 'Back to the default colours.', 'ok');
+      await load();
+    }));
+
     /* settings */
     $('add-setting').addEventListener('submit', run(async (e) => {
       e.preventDefault();
@@ -299,7 +356,7 @@
     $('settings').addEventListener('click', run(async (e) => {
       const act = e.target.dataset.act;
       if (!act) return;
-      const key = e.target.closest('tr').dataset.key;
+      const key = e.target.closest('tr').dataset.id;
       if (act === 'edit') {
         const f = $('add-setting'), s = state.settings.find((x) => x.key === key);
         f.key.value = s.key; f.value.value = s.value;
@@ -312,7 +369,9 @@
 
     try {
       const me = await api('me');
-      $('who').textContent = me.email;
+      FG.configure({ app: 'portal-admin', user: me.email });
+      shell = FG.shell($('side'), { app: 'portal', name: 'Admin', icon: '/assets/planner-192.png', home: '/admin/', user: me.email,
+        sections: Object.entries(SECTIONS).map(([id, label]) => ({ id, label })), current: (location.hash || '#users').slice(1), onSection: showTab });
       if (!me.admin) throw new Error('Admins only.');
       await load();
       showTab((location.hash || '#users').slice(1));

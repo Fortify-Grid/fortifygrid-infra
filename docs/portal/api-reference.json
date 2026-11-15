@@ -1,0 +1,630 @@
+{
+  "app": "portal",
+  "routes": [
+    {
+      "module": "access",
+      "permission": "portal admin",
+      "storageTier": "tier1_d1 external",
+      "description": "Apps: register or change an app (id, name, https URL, roles lowest first, folder); set its tabs and which role sees each.",
+      "params": [
+        "{object} body app: {id, name, description, url, roles, enabled, sort, folder}; tabs: {tabs: [{tab, label}], roles: {role: tab[]}}"
+      ],
+      "returns": "{object} saved app / tabs",
+      "throws": [
+        "400 bad id, URL or roles · 404 no such app"
+      ],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "POST",
+      "path": "/api/admin/apps",
+      "source": "worker.js:672"
+    },
+    {
+      "module": "access",
+      "permission": "portal admin",
+      "storageTier": "tier1_d1 external",
+      "description": "Apps: register or change an app (id, name, https URL, roles lowest first, folder); set its tabs and which role sees each.",
+      "params": [
+        "{object} body app: {id, name, description, url, roles, enabled, sort, folder}; tabs: {tabs: [{tab, label}], roles: {role: tab[]}}"
+      ],
+      "returns": "{object} saved app / tabs",
+      "throws": [
+        "400 bad id, URL or roles · 404 no such app"
+      ],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "POST",
+      "path": "/api/admin/apps/:id/tabs",
+      "source": "worker.js:672"
+    },
+    {
+      "module": "access",
+      "permission": "portal admin",
+      "storageTier": "tier1_d1",
+      "description": "Audit log, newest 300.",
+      "params": [],
+      "returns": "{object[]} [{id, at, actor, action, target, detail}]",
+      "throws": [],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/admin/audit",
+      "source": "worker.js:701"
+    },
+    {
+      "module": "access",
+      "permission": "portal admin",
+      "storageTier": "static_assets",
+      "description": "This portal's generated API and schema docs (admin → Documentation). Each app serves its own at /api/docs.",
+      "params": [],
+      "returns": "{{index, api, schema}} the files in docs/portal (index.json, api-reference.json, relationships.json)",
+      "throws": [
+        "403 Admins only"
+      ],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/admin/docs",
+      "source": "worker.js:708"
+    },
+    {
+      "module": "access",
+      "permission": "portal admin",
+      "storageTier": "tier1_d1 external",
+      "description": "Admin overview: users, apps, settings, tabs, Access sync and login methods.",
+      "params": [],
+      "returns": "{{users, apps, settings, tabs, access_sync, email_invites, team_domain, logins}}",
+      "throws": [
+        "403 Admins only"
+      ],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/admin/overview",
+      "source": "worker.js:651"
+    },
+    {
+      "module": "access",
+      "permission": "portal admin",
+      "storageTier": "external",
+      "description": "Rewrite every Cloudflare Access group from the user list.",
+      "params": [],
+      "returns": "{{ok, note}}",
+      "throws": [],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "POST",
+      "path": "/api/admin/sync",
+      "source": "worker.js:694"
+    },
+    {
+      "module": "access",
+      "permission": "portal admin",
+      "storageTier": "tier1_d1 external",
+      "description": "Users: add or change (portal admin flag, active, role per app), delete, send invite. Saving rewrites the Cloudflare Access group emails (portal + per app).",
+      "params": [
+        "{object} body {email, name, is_admin, active, apps: {appId: role}}"
+      ],
+      "returns": "{object} saved user + Access sync note / invite result",
+      "throws": [
+        "400 bad email / removing your own admin · 404 no such user"
+      ],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "POST",
+      "path": "/api/admin/users",
+      "source": "worker.js:659"
+    },
+    {
+      "module": "access",
+      "permission": "portal admin",
+      "storageTier": "tier1_d1 external",
+      "description": "Users: add or change (portal admin flag, active, role per app), delete, send invite. Saving rewrites the Cloudflare Access group emails (portal + per app).",
+      "params": [
+        "{object} body {email, name, is_admin, active, apps: {appId: role}}"
+      ],
+      "returns": "{object} saved user + Access sync note / invite result",
+      "throws": [
+        "400 bad email / removing your own admin · 404 no such user"
+      ],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "DELETE",
+      "path": "/api/admin/users/:email",
+      "source": "worker.js:659"
+    },
+    {
+      "module": "access",
+      "permission": "portal admin",
+      "storageTier": "tier1_d1 external",
+      "description": "Users: add or change (portal admin flag, active, role per app), delete, send invite. Saving rewrites the Cloudflare Access group emails (portal + per app).",
+      "params": [
+        "{object} body {email, name, is_admin, active, apps: {appId: role}}"
+      ],
+      "returns": "{object} saved user + Access sync note / invite result",
+      "throws": [
+        "400 bad email / removing your own admin · 404 no such user"
+      ],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "POST",
+      "path": "/api/admin/users/:email/invite",
+      "source": "worker.js:659"
+    },
+    {
+      "module": "directory",
+      "permission": "service binding (app Workers only)",
+      "storageTier": "tier1_d1",
+      "description": "Directory: what app Workers ask the portal over the service binding (never reachable from the internet). config → {team_domain, aud} to verify Access logins; access → role or null; tabs → tab ids; users → who may open the app.",
+      "params": [],
+      "returns": "",
+      "throws": [],
+      "examples": [],
+      "handler": "Directory",
+      "kind": "rpc",
+      "method": "RPC",
+      "path": "Directory.access(email, appId)",
+      "source": "worker.js:785"
+    },
+    {
+      "module": "directory",
+      "permission": "service binding (app Workers only)",
+      "storageTier": "tier1_d1",
+      "description": "Directory: what app Workers ask the portal over the service binding (never reachable from the internet). config → {team_domain, aud} to verify Access logins; access → role or null; tabs → tab ids; users → who may open the app.",
+      "params": [],
+      "returns": "",
+      "throws": [],
+      "examples": [],
+      "handler": "Directory",
+      "kind": "rpc",
+      "method": "RPC",
+      "path": "Directory.config(appId)",
+      "source": "worker.js:785"
+    },
+    {
+      "module": "directory",
+      "permission": "service binding (app Workers only)",
+      "storageTier": "tier1_d1",
+      "description": "Directory: what app Workers ask the portal over the service binding (never reachable from the internet). config → {team_domain, aud} to verify Access logins; access → role or null; tabs → tab ids; users → who may open the app.",
+      "params": [],
+      "returns": "",
+      "throws": [],
+      "examples": [],
+      "handler": "Directory",
+      "kind": "rpc",
+      "method": "RPC",
+      "path": "Directory.tabs(email, appId)",
+      "source": "worker.js:785"
+    },
+    {
+      "module": "directory",
+      "permission": "service binding (app Workers only)",
+      "storageTier": "tier1_d1",
+      "description": "Directory: what app Workers ask the portal over the service binding (never reachable from the internet). config → {team_domain, aud} to verify Access logins; access → role or null; tabs → tab ids; users → who may open the app.",
+      "params": [],
+      "returns": "",
+      "throws": [],
+      "examples": [],
+      "handler": "Directory",
+      "kind": "rpc",
+      "method": "RPC",
+      "path": "Directory.users(appId)",
+      "source": "worker.js:785"
+    },
+    {
+      "module": "planner",
+      "permission": "Planner tab admin",
+      "storageTier": "tier1_d1",
+      "description": "Planner people and permissions: Planner name, shared workstreams and extra tabs per user.",
+      "params": [
+        "{object} body {email, name, tabs[], ws[]}"
+      ],
+      "returns": "{object[]|{ok: true}} [{email, name, role, tabs, pname, ws}] for GET",
+      "throws": [
+        "404 no such active user · 400 name taken"
+      ],
+      "examples": [],
+      "handler": "workplanApi",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/workplan/access",
+      "source": "worker.js:450"
+    },
+    {
+      "module": "planner",
+      "permission": "Planner tab admin",
+      "storageTier": "tier1_d1",
+      "description": "Planner people and permissions: Planner name, shared workstreams and extra tabs per user.",
+      "params": [
+        "{object} body {email, name, tabs[], ws[]}"
+      ],
+      "returns": "{object[]|{ok: true}} [{email, name, role, tabs, pname, ws}] for GET",
+      "throws": [
+        "404 no such active user · 400 name taken"
+      ],
+      "examples": [],
+      "handler": "workplanApi",
+      "kind": "http",
+      "method": "POST",
+      "path": "/api/workplan/access",
+      "source": "worker.js:450"
+    },
+    {
+      "module": "planner",
+      "permission": "Planner role (member or admin)",
+      "storageTier": "tier1_d1",
+      "description": "Planner: who am I here (role, tabs, Planner name, people names for the Depends-on picker).",
+      "params": [],
+      "returns": "{{email, role, tabs: string[], admin: boolean, name, people: string[]}}",
+      "throws": [
+        "403 no Planner role"
+      ],
+      "examples": [],
+      "handler": "workplanApi",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/workplan/me",
+      "source": "worker.js:412"
+    },
+    {
+      "module": "planner",
+      "permission": "Planner tab workplan; only tasks the caller can see",
+      "storageTier": "tier1_d1",
+      "description": "Planner tasks. Members see tasks of workstreams shared with them plus tasks whose Depends-on note names them; Planner admins see all. Listing also deletes tasks completed more than 30 days ago.",
+      "params": [
+        "{object} body POST: {project, category, task, workstream_id, depends_on, depends_note, start_date, due_date, status}; bulk: {ids[] ≤500, changes: {project, category, status, start_date, due_date, workstream_id}}"
+      ],
+      "returns": "{object[]|{ok: true}} tasks (GET), else ok",
+      "throws": [
+        "400 bad dates / nothing to change · 403 workstream not shared · 404 task not visible"
+      ],
+      "examples": [
+        "POST /api/workplan/tasks/bulk {\"ids\":[3,4],\"changes\":{\"status\":\"complete\"}}"
+      ],
+      "handler": "workplanApi",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/workplan/tasks",
+      "source": "worker.js:420"
+    },
+    {
+      "module": "planner",
+      "permission": "Planner tab workplan; only tasks the caller can see",
+      "storageTier": "tier1_d1",
+      "description": "Planner tasks. Members see tasks of workstreams shared with them plus tasks whose Depends-on note names them; Planner admins see all. Listing also deletes tasks completed more than 30 days ago.",
+      "params": [
+        "{object} body POST: {project, category, task, workstream_id, depends_on, depends_note, start_date, due_date, status}; bulk: {ids[] ≤500, changes: {project, category, status, start_date, due_date, workstream_id}}"
+      ],
+      "returns": "{object[]|{ok: true}} tasks (GET), else ok",
+      "throws": [
+        "400 bad dates / nothing to change · 403 workstream not shared · 404 task not visible"
+      ],
+      "examples": [
+        "POST /api/workplan/tasks/bulk {\"ids\":[3,4],\"changes\":{\"status\":\"complete\"}}"
+      ],
+      "handler": "workplanApi",
+      "kind": "http",
+      "method": "POST",
+      "path": "/api/workplan/tasks",
+      "source": "worker.js:420"
+    },
+    {
+      "module": "planner",
+      "permission": "Planner tab workplan; only tasks the caller can see",
+      "storageTier": "tier1_d1",
+      "description": "Planner tasks. Members see tasks of workstreams shared with them plus tasks whose Depends-on note names them; Planner admins see all. Listing also deletes tasks completed more than 30 days ago.",
+      "params": [
+        "{object} body POST: {project, category, task, workstream_id, depends_on, depends_note, start_date, due_date, status}; bulk: {ids[] ≤500, changes: {project, category, status, start_date, due_date, workstream_id}}"
+      ],
+      "returns": "{object[]|{ok: true}} tasks (GET), else ok",
+      "throws": [
+        "400 bad dates / nothing to change · 403 workstream not shared · 404 task not visible"
+      ],
+      "examples": [
+        "POST /api/workplan/tasks/bulk {\"ids\":[3,4],\"changes\":{\"status\":\"complete\"}}"
+      ],
+      "handler": "workplanApi",
+      "kind": "http",
+      "method": "DELETE",
+      "path": "/api/workplan/tasks/:id",
+      "source": "worker.js:420"
+    },
+    {
+      "module": "planner",
+      "permission": "Planner tab workplan; only tasks the caller can see",
+      "storageTier": "tier1_d1",
+      "description": "Planner tasks. Members see tasks of workstreams shared with them plus tasks whose Depends-on note names them; Planner admins see all. Listing also deletes tasks completed more than 30 days ago.",
+      "params": [
+        "{object} body POST: {project, category, task, workstream_id, depends_on, depends_note, start_date, due_date, status}; bulk: {ids[] ≤500, changes: {project, category, status, start_date, due_date, workstream_id}}"
+      ],
+      "returns": "{object[]|{ok: true}} tasks (GET), else ok",
+      "throws": [
+        "400 bad dates / nothing to change · 403 workstream not shared · 404 task not visible"
+      ],
+      "examples": [
+        "POST /api/workplan/tasks/bulk {\"ids\":[3,4],\"changes\":{\"status\":\"complete\"}}"
+      ],
+      "handler": "workplanApi",
+      "kind": "http",
+      "method": "POST",
+      "path": "/api/workplan/tasks/:id",
+      "source": "worker.js:420"
+    },
+    {
+      "module": "planner",
+      "permission": "Planner tab workplan; only tasks the caller can see",
+      "storageTier": "tier1_d1",
+      "description": "Planner tasks. Members see tasks of workstreams shared with them plus tasks whose Depends-on note names them; Planner admins see all. Listing also deletes tasks completed more than 30 days ago.",
+      "params": [
+        "{object} body POST: {project, category, task, workstream_id, depends_on, depends_note, start_date, due_date, status}; bulk: {ids[] ≤500, changes: {project, category, status, start_date, due_date, workstream_id}}"
+      ],
+      "returns": "{object[]|{ok: true}} tasks (GET), else ok",
+      "throws": [
+        "400 bad dates / nothing to change · 403 workstream not shared · 404 task not visible"
+      ],
+      "examples": [
+        "POST /api/workplan/tasks/bulk {\"ids\":[3,4],\"changes\":{\"status\":\"complete\"}}"
+      ],
+      "handler": "workplanApi",
+      "kind": "http",
+      "method": "POST",
+      "path": "/api/workplan/tasks/bulk",
+      "source": "worker.js:420"
+    },
+    {
+      "module": "planner",
+      "permission": "Planner tab workplan (members: shared ones + ones holding a task naming them)",
+      "storageTier": "tier1_d1",
+      "description": "Planner workstreams (sub-tabs / channels): list, add, rename, reorder, delete (only when empty).",
+      "params": [
+        "{object} body {name} or order: {ids[]}"
+      ],
+      "returns": "{object[]|{ok: true}} [{id, name, sort, edit}] for GET",
+      "throws": [
+        "400 duplicate name / workstream still has tasks / last workstream"
+      ],
+      "examples": [],
+      "handler": "workplanApi",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/workplan/workstreams",
+      "source": "worker.js:436"
+    },
+    {
+      "module": "planner",
+      "permission": "Planner tab admin",
+      "storageTier": "tier1_d1",
+      "description": "Planner workstreams (sub-tabs / channels): list, add, rename, reorder, delete (only when empty).",
+      "params": [
+        "{object} body {name} or order: {ids[]}"
+      ],
+      "returns": "{object[]|{ok: true}} [{id, name, sort, edit}] for GET",
+      "throws": [
+        "400 duplicate name / workstream still has tasks / last workstream"
+      ],
+      "examples": [],
+      "handler": "workplanApi",
+      "kind": "http",
+      "method": "POST",
+      "path": "/api/workplan/workstreams",
+      "source": "worker.js:436"
+    },
+    {
+      "module": "planner",
+      "permission": "Planner tab admin",
+      "storageTier": "tier1_d1",
+      "description": "Planner workstreams (sub-tabs / channels): list, add, rename, reorder, delete (only when empty).",
+      "params": [
+        "{object} body {name} or order: {ids[]}"
+      ],
+      "returns": "{object[]|{ok: true}} [{id, name, sort, edit}] for GET",
+      "throws": [
+        "400 duplicate name / workstream still has tasks / last workstream"
+      ],
+      "examples": [],
+      "handler": "workplanApi",
+      "kind": "http",
+      "method": "DELETE",
+      "path": "/api/workplan/workstreams/:id",
+      "source": "worker.js:436"
+    },
+    {
+      "module": "planner",
+      "permission": "Planner tab admin",
+      "storageTier": "tier1_d1",
+      "description": "Planner workstreams (sub-tabs / channels): list, add, rename, reorder, delete (only when empty).",
+      "params": [
+        "{object} body {name} or order: {ids[]}"
+      ],
+      "returns": "{object[]|{ok: true}} [{id, name, sort, edit}] for GET",
+      "throws": [
+        "400 duplicate name / workstream still has tasks / last workstream"
+      ],
+      "examples": [],
+      "handler": "workplanApi",
+      "kind": "http",
+      "method": "POST",
+      "path": "/api/workplan/workstreams/:id",
+      "source": "worker.js:436"
+    },
+    {
+      "module": "planner",
+      "permission": "Planner tab admin",
+      "storageTier": "tier1_d1",
+      "description": "Planner workstreams (sub-tabs / channels): list, add, rename, reorder, delete (only when empty).",
+      "params": [
+        "{object} body {name} or order: {ids[]}"
+      ],
+      "returns": "{object[]|{ok: true}} [{id, name, sort, edit}] for GET",
+      "throws": [
+        "400 duplicate name / workstream still has tasks / last workstream"
+      ],
+      "examples": [],
+      "handler": "workplanApi",
+      "kind": "http",
+      "method": "POST",
+      "path": "/api/workplan/workstreams/order",
+      "source": "worker.js:436"
+    },
+    {
+      "module": "platform",
+      "permission": "public",
+      "storageTier": "static_assets",
+      "description": "Shared UI kit for every app (public/platform/v<n>/: fg-ui.css, fg-ui.js, demo.html). Public on both hosts, so subdomain apps load it without a portal sign-in; CORS open (static, no data). Rules: platform/UI_PRINCIPLES.md.",
+      "params": [],
+      "returns": "{Response} the file, `access-control-allow-origin: *`, revalidated on every load",
+      "throws": [],
+      "examples": [],
+      "handler": "platformFile",
+      "kind": "http",
+      "method": "GET",
+      "path": "/platform/:version/:file",
+      "source": "worker.js:850"
+    },
+    {
+      "module": "platform",
+      "permission": "public",
+      "storageTier": "tier1_d1",
+      "description": "Theme colours chosen in admin → Settings, as CSS the kit loads after fg-ui.css (it only sets --fg-mint, --fg-ice, --fg-apricot; unset keys keep the kit defaults). Public like the kit; cached 60 s, so a change reaches every app within a minute.",
+      "params": [],
+      "returns": "{Response} text/css, `access-control-allow-origin: *`",
+      "throws": [],
+      "examples": [],
+      "handler": "themeCss",
+      "kind": "http",
+      "method": "GET",
+      "path": "/platform/v1/theme.css",
+      "source": "worker.js:831"
+    },
+    {
+      "module": "portal",
+      "permission": "signed-in user (Cloudflare Access)",
+      "storageTier": "static_assets",
+      "description": "Portal pages and app gates on app.fortifygrid.com: pages need a signed-in user; /ide/ needs an IDE role (and the downloads tab for /ide/files/) and is forwarded to the fortifygrid-ide Worker; /workplan/ needs a Planner role.",
+      "params": [],
+      "returns": "",
+      "throws": [
+        "403 no role for that app"
+      ],
+      "examples": [],
+      "handler": "portalHost",
+      "kind": "http",
+      "method": "GET",
+      "path": "/*",
+      "source": "worker.js:868"
+    },
+    {
+      "module": "portal",
+      "permission": "portal admin",
+      "storageTier": "tier1_d1",
+      "description": "Site settings (e.g. dashboard_notice). theme_main / theme_accent1 / theme_accent2 = #rrggbb colours for every app.",
+      "params": [
+        "{object} body {key, value ≤4000 chars}"
+      ],
+      "returns": "{{ok: true}}",
+      "throws": [
+        "400 bad key, or a theme_ key that is not a known colour as #rrggbb"
+      ],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "POST",
+      "path": "/api/admin/settings",
+      "source": "worker.js:683"
+    },
+    {
+      "module": "portal",
+      "permission": "portal admin",
+      "storageTier": "tier1_d1",
+      "description": "Site settings (e.g. dashboard_notice). theme_main / theme_accent1 / theme_accent2 = #rrggbb colours for every app.",
+      "params": [
+        "{object} body {key, value ≤4000 chars}"
+      ],
+      "returns": "{{ok: true}}",
+      "throws": [
+        "400 bad key, or a theme_ key that is not a known colour as #rrggbb"
+      ],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "DELETE",
+      "path": "/api/admin/settings/:key",
+      "source": "worker.js:683"
+    },
+    {
+      "module": "portal",
+      "permission": "signed-in user",
+      "storageTier": "tier1_d1",
+      "description": "The signed-in user and the app tiles they may open (dashboard). Every portal API call verifies the Access JWT; writes must be same-origin JSON.",
+      "params": [],
+      "returns": "{{email, name, admin: boolean, apps: {id, name, description, url, folder, folder_sort, role}[], notice}}",
+      "throws": [
+        "401 not signed in · 403 not an active user"
+      ],
+      "examples": [],
+      "handler": "api",
+      "kind": "http",
+      "method": "GET",
+      "path": "/api/me",
+      "source": "worker.js:642"
+    },
+    {
+      "module": "portal",
+      "permission": "IDE role; /ide/files/* also tab downloads",
+      "storageTier": "static_assets",
+      "description": "Portal pages and app gates on app.fortifygrid.com: pages need a signed-in user; /ide/ needs an IDE role (and the downloads tab for /ide/files/) and is forwarded to the fortifygrid-ide Worker; /workplan/ needs a Planner role.",
+      "params": [],
+      "returns": "",
+      "throws": [
+        "403 no role for that app"
+      ],
+      "examples": [],
+      "handler": "portalHost",
+      "kind": "http",
+      "method": "GET",
+      "path": "/ide/*",
+      "source": "worker.js:868"
+    },
+    {
+      "module": "portal",
+      "permission": "Planner role",
+      "storageTier": "static_assets",
+      "description": "Portal pages and app gates on app.fortifygrid.com: pages need a signed-in user; /ide/ needs an IDE role (and the downloads tab for /ide/files/) and is forwarded to the fortifygrid-ide Worker; /workplan/ needs a Planner role.",
+      "params": [],
+      "returns": "",
+      "throws": [
+        "403 no role for that app"
+      ],
+      "examples": [],
+      "handler": "portalHost",
+      "kind": "http",
+      "method": "GET",
+      "path": "/workplan/*",
+      "source": "worker.js:868"
+    },
+    {
+      "module": "site",
+      "permission": "public",
+      "storageTier": "static_assets",
+      "description": "Public website fortifygrid.com (public/): no sign-in. www → apex; old /dashboard links → app.fortifygrid.com.",
+      "params": [],
+      "returns": "",
+      "throws": [],
+      "examples": [],
+      "handler": "",
+      "kind": "http",
+      "method": "GET",
+      "path": "/",
+      "source": "worker.js:933"
+    }
+  ]
+}
