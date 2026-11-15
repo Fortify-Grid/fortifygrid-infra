@@ -30,6 +30,8 @@
     td.task { font-weight: 500; }
     td.nowrap { white-space: nowrap; }
     tr.st-complete td.task { text-decoration: line-through; color: var(--muted); }
+    tr.st-complete > td { background: rgba(46, 125, 50, .09); }   /* complete = light green */
+    tr.late > td { background: rgba(211, 63, 63, .09); }          /* overdue = light red */
     tr.late td.dates { color: var(--coral); font-weight: 600; }
     select.status { min-width: 120px; }
     .soon { background: var(--card); border: 1px dashed var(--line); border-radius: 8px; padding: 48px 20px; text-align: center; margin-top: 16px; }
@@ -48,6 +50,7 @@
       .cards tr.flt th:first-child, .cards tr.hd th { display: none; }
       .cards tr.flt th { display: block; width: auto; flex: 1 1 140px; padding: 0; }
       .cards tr { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
+      .cards tr.st-complete { background: rgba(46, 125, 50, .09); } .cards tr.late { background: rgba(211, 63, 63, .09); } .cards tr > td { background: none; }
       .cards tr.st-blocked { border-left: 4px solid var(--coral); } .cards tr.st-in_progress { border-left: 4px solid var(--green); }
       .cards td { border: 0; padding: 4px 0; display: flex; gap: 10px; justify-content: space-between; align-items: center; }
       .cards td[data-label]::before { content: attr(data-label); font-size: 12px; color: var(--muted); text-transform: uppercase; }
