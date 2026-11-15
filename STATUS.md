@@ -14,7 +14,6 @@ Updated 2026-11-15.
 | IDE at **app.fortifygrid.com/ide/**: the portal checks the role and forwards to the `fortifygrid-ide` Worker (no public route) | 2026-10-25 |
 
 ## Open
-- **Before pushing workstreams:** remote D1 `ALTER TABLE wp_tasks ADD COLUMN workstream_id INTEGER;` (deploy schema then seeds Work, Family, Others and moves existing tasks to Work).
 - Workplan: build System Pricing and Accounts tabs (data from RDS via Hyperdrive when needed).
 - Contact form doesn't send.
 - Secrets in git history not rotated (owner's choice).
