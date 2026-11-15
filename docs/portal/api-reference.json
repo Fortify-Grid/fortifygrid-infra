@@ -464,7 +464,7 @@
       "storageTier": "static_assets",
       "description": "Shared UI kit for every app (public/platform/v<n>/: fg-ui.css, fg-ui.js, demo.html). Public on both hosts, so subdomain apps load it without a portal sign-in; CORS open (static, no data). Rules: platform/UI_PRINCIPLES.md.",
       "params": [],
-      "returns": "{Response} the file, `access-control-allow-origin: *`, cached 5 minutes",
+      "returns": "{Response} the file, `access-control-allow-origin: *`, revalidated on every load",
       "throws": [],
       "examples": [],
       "handler": "platformFile",

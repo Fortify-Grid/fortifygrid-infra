@@ -817,13 +817,13 @@ export class Directory extends WorkerEntrypoint {
  * @route GET /platform/:version/:file
  * @permission public
  * @storageTier static_assets
- * @returns {Response} the file, `access-control-allow-origin: *`, cached 5 minutes
+ * @returns {Response} the file, `access-control-allow-origin: *`, revalidated on every load
  */
 async function platformFile(req, env) {
   const res = await env.ASSETS.fetch(req);
   const out = new Response(res.body, res);
   out.headers.set('access-control-allow-origin', '*');
-  if (res.ok) out.headers.set('cache-control', 'public, max-age=300');
+  if (res.ok) out.headers.set('cache-control', 'no-cache'); // always revalidate (cheap 304): a new page never meets an old kit
   return out;
 }
 
