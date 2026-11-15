@@ -108,7 +108,7 @@ INSERT INTO role_tabs (app_id, role, tab)
   SELECT 'query', r.role, t.tab FROM (SELECT 'viewer' AS role UNION ALL SELECT 'admin') r, (SELECT 'ercot' AS tab UNION ALL SELECT 'tb2m' UNION ALL SELECT 'ancillary') t
   WHERE NOT EXISTS (SELECT 1 FROM role_tabs x WHERE x.app_id = 'query' AND x.tab = t.tab);
 
--- Revenue Analysis app (Fortify-Grid/revenue-analysis-module). Append to fortifygrid-website schema.sql (idempotent).
+-- Revenue Analysis app (Fortify-Grid/revenue-analysis-module). Append to fortifygrid-infra schema.sql (idempotent).
 -- Tabs: analyze = upload / run / change battery settings, export = Excel / PDF / zip, admin = delete customers.
 -- Roles: viewer sees results, analyst runs analyses, admin everything.
 INSERT OR IGNORE INTO apps (id, name, description, url, roles, sort, created_at, updated_at) VALUES

@@ -1,13 +1,13 @@
 # FortifyGrid platform (INFRA.md)
 
-Same file in every FortifyGrid repo. Master: `Fortify-Grid/fortifygrid-website/INFRA.md`. To change it, edit the master, then copy it to the other repos.
+Same file in every FortifyGrid repo. Master: `Fortify-Grid/fortifygrid-infra/INFRA.md`. To change it, edit the master, then copy it to the other repos.
 
 Every repo has three docs:
 - **INFRA.md** (this file): how the platform is wired.
 - **README.md**: this app's requirements, design, code layout, and how to run, test and deploy it.
 - **STATUS.md**: what is live, what is open, and what comes next. Update it with every change.
 
-`AGENTS.md` points LLMs to these three files; `CLAUDE.md` is `@AGENTS.md`. Human-only setup steps are in `fortifygrid-website/USER_SETUP.md`.
+`AGENTS.md` points LLMs to these three files; `CLAUDE.md` is `@AGENTS.md`. Human-only setup steps are in `fortifygrid-infra/USER_SETUP.md`.
 
 ## Flow
 ```
@@ -17,10 +17,12 @@ Data: AWS RDS Postgres (read-only user per app) ← Hyperdrive ← app Worker.  
 ```
 
 ## Hosts
+The portal Worker is still named `fortifygrid-website` (repo `fortifygrid-infra`). Every app binds to it by that name: do not rename it.
+
 | Host | Repo | What |
 |---|---|---|
-| fortifygrid.com | fortifygrid-website | Public site (`public/`) |
-| app.fortifygrid.com | fortifygrid-website | Portal: tiles, admin (`/admin/`), API (`/api/`). Files in `public/dashboard/`, served at the host root |
+| fortifygrid.com | fortifygrid-infra | Public site (`public/`) |
+| app.fortifygrid.com | fortifygrid-infra | Portal: tiles, admin (`/admin/`), API (`/api/`). Files in `public/dashboard/`, served at the host root |
 | app.fortifygrid.com/ide/ | fortifygrid-ide | IDE / BIM viewer. The portal checks the role, then forwards to the `fortifygrid-ide` Worker (service binding `IDE`, no public route) |
 | heatmap / query.fortifygrid.com | FGAI-RAG | `apps/heatmap/`, `apps/query/`. Own Workers |
 | rev-anal.fortifygrid.com | revenue-analysis-module | Revenue Analysis. Own Worker |
@@ -35,13 +37,14 @@ Subdomain apps move to the portal path when they are next touched.
 ## Repos and working folders
 | Repo `Fortify-Grid/…` | Working folder (Google Drive) |
 |---|---|
-| fortifygrid-website | `Shared drives/4. Fortify AI LLC/11. AI Code/6. FortifyGrid Website` |
-| fortifygrid-ide | `Shared drives/4. Fortify AI LLC/11. AI Code/7. Fortify IDE-BIM` |
-| FGAI-RAG | `Shared drives/4. Fortify AI LLC/11. AI Code/2. FGAI-RAG` |
-| revenue-analysis-module | `Shared drives/4. Fortify AI LLC/11. AI Code/5. Revenue Analysis` |
+| fortifygrid-infra | `Shared drives/4. Fortify AI LLC/11. AI Code/FG1. fortifygrid-infra` |
+| fortifygrid-ide | `Shared drives/4. Fortify AI LLC/11. AI Code/FG2. fortifygrid-ide` |
+| FGAI-RAG | `Shared drives/4. Fortify AI LLC/11. AI Code/FG4. FGAI-RAG` |
+| revenue-analysis-module | `Shared drives/4. Fortify AI LLC/11. AI Code/FG3. revenue-analysis-module` |
 | FGDataETL | `~/FortifyAI/FGDataETL` (ETL into RDS, not Cloudflare) |
 
 Drive and Dropbox are for editing only. Git is what deploys. Rules:
+- Code folders in Drive are named `FG<n>. <repo name>` and hold only that repo. Non-code files go elsewhere (project files in `3. FortifyGrid LLC`).
 - Gitignore `node_modules/`, `.wrangler/`, `.dev.vars` and `.env*`.
 - Only one machine at a time works in a Drive-synced `.git`. A second machine uses a fresh `git clone`.
 - Python virtualenvs go outside Drive (`~/.venvs/`).
