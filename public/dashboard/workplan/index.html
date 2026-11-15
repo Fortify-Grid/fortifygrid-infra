@@ -39,6 +39,7 @@
       .cards table, .cards tbody, .cards tr, .cards td { display: block; width: 100%; }
       .cards thead, .cards thead tr.flt { display: flex; flex-wrap: wrap; gap: 6px; border: 0; padding: 0; background: none; margin-bottom: 10px; }
       .cards thead tr.hd { display: none; }
+      .cards tr.flt th:first-child, .cards tr.hd th { display: none; }
       .cards tr.flt th { display: block; width: auto; flex: 1 1 140px; padding: 0; }
       .cards tr { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
       .cards tr.st-blocked { border-left: 4px solid var(--coral); } .cards tr.st-in_progress { border-left: 4px solid var(--green); }
@@ -72,6 +73,7 @@
           <button class="chip" data-f="overdue">Overdue</button>
         </div>
         <button id="clear" class="ghost" hidden>Clear filters</button>
+        <span id="sel" hidden><b id="sel-n"></b> selected <button id="bulk">Edit selected</button> <button id="unsel" class="ghost">Deselect</button></span>
         <span class="grow"></span>
         <button id="add">+ Add task</button>
       </div>
@@ -92,6 +94,19 @@
         <tbody id="access"></tbody></table></div>
     </section>
   </main>
+
+  <dialog id="bulk-dlg">
+    <h3 id="bulk-title" style="margin-top:0"></h3>
+    <p class="muted full" style="margin-top:0">Only fields you fill in change. Blank = keep each task's own value. Task name and dependencies are not changed here.</p>
+    <form id="bulk-form">
+      <label>Project<input name="project" list="projects" type="text"></label>
+      <label>Category<input name="category" list="categories" type="text"></label>
+      <label class="full">Status<select name="status"></select></label>
+      <label>Start date<input name="start_date" type="date"></label>
+      <label>Due date<input name="due_date" type="date"></label>
+      <p class="row-actions full"><button type="submit">Apply to selected</button><button type="button" class="ghost" id="bulk-cancel">Cancel</button></p>
+    </form>
+  </dialog>
 
   <dialog id="edit">
     <h3 id="edit-title" style="margin-top:0"></h3>
@@ -167,7 +182,7 @@
       status: { label: 'Status', sort: (t) => Object.keys(STATUS).indexOf(t.status), f: (t) => t.status, show: (v) => STATUS[v], cell: status },
     };
     const DEFAULT = Object.keys(COLS);
-    let order = DEFAULT, flt = {};
+    let order = DEFAULT, flt = {}, picked = new Set(), shown = [];
     try { const o = JSON.parse(localStorage.getItem('wp-cols')); if (Array.isArray(o) && o.length === DEFAULT.length && DEFAULT.every((k) => o.includes(k))) order = o; } catch {}
     const NONE = '\u0000';
     const optVals = (k) => {
@@ -175,8 +190,8 @@
       return vals.sort((a, b) => (c.show ? Object.keys(STATUS).indexOf(a) - Object.keys(STATUS).indexOf(b) : String(a).localeCompare(String(b), undefined, { numeric: true })));
     };
     function buildHead() {
-      $('head').innerHTML = `<tr class="hd">${order.map((k) => `<th class="hd" data-sort="${k}" data-col="${k}" draggable="true" title="Click to sort, drag to move">${COLS[k].label}</th>`).join('')}<th></th></tr>
-        <tr class="flt">${order.map((k) => {
+      $('head').innerHTML = `<tr class="hd"><th><input type="checkbox" id="all" aria-label="Select all shown"></th>${order.map((k) => `<th class="hd" data-sort="${k}" data-col="${k}" draggable="true" title="Click to sort, drag to move">${COLS[k].label}</th>`).join('')}<th></th></tr>
+        <tr class="flt"><th></th>${order.map((k) => {
           const c = COLS[k];
           if (c.text) return `<th><input type="search" data-flt="${k}" placeholder="Filter…" aria-label="Filter ${c.label}" value="${esc(flt[k] || '')}"></th>`;
           if (!c.f) return '<th></th>';
@@ -191,10 +206,13 @@
       const sv = COLS[sort.key].sort;
       const list = tasks.filter((t) => keep(t) && colOk(t))
         .sort((a, b) => { const x = sv(a), y = sv(b); return (x < y ? -1 : x > y ? 1 : a.id - b.id) * sort.dir; });
-      $('rows').innerHTML = list.map((t) => `<tr class="st-${t.status}${late(t) ? ' late' : ''}">${order.map((k) => {
+      $('rows').innerHTML = list.map((t) => `<tr class="st-${t.status}${late(t) ? ' late' : ''}"><td><input type="checkbox" data-sel="${t.id}" aria-label="Select task #${t.id}"${picked.has(t.id) ? ' checked' : ''}></td>${order.map((k) => {
         const c = COLS[k]; return `<td data-label="${c.label}" class="${c.cls || ''}">${c.cell(t)}</td>`; }).join('')}
         <td><button class="ghost" data-edit="${t.id}">Edit</button></td></tr>`).join('')
-        || `<tr><td colspan="${order.length + 1}" class="muted">No tasks in this view.</td></tr>`;
+        || `<tr><td colspan="${order.length + 2}" class="muted">No tasks in this view.</td></tr>`;
+      shown = list.map((t) => t.id);
+      $('sel').hidden = !picked.size; $('sel-n').textContent = picked.size;
+      const all = $('all'); if (all) { all.checked = shown.length > 0 && shown.every((i) => picked.has(i)); all.indeterminate = !all.checked && shown.some((i) => picked.has(i)); }
       $('count').textContent = `${list.length} of ${tasks.length} tasks`;
       $('clear').hidden = !Object.values(flt).some(Boolean);
       document.querySelectorAll('th[data-sort]').forEach((th) => th.className = 'hd ' + (th.dataset.sort === sort.key ? (sort.dir > 0 ? 'asc' : 'desc') : ''));
@@ -205,6 +223,7 @@
       $('projects').innerHTML = list('project').map((p) => `<option value="${esc(p)}">`).join('');
       $('categories').innerHTML = list('category').map((p) => `<option value="${esc(p)}">`).join('');
       for (const k of Object.keys(flt)) if (flt[k] && !COLS[k].text && !optVals(k).some((v) => (v || NONE) === flt[k])) delete flt[k];
+      picked = new Set([...picked].filter(byId));
       buildHead(); render();
     }
     async function save(t) {
@@ -225,6 +244,22 @@
     });
     head.addEventListener('input', (e) => { const k = e.target.dataset.flt; if (k) { flt[k] = e.target.value; render(); } });
     $('clear').addEventListener('click', () => { flt = {}; buildHead(); render(); });
+    /* select rows, edit shared fields on all of them (task text and dependencies stay per task) */
+    head.addEventListener('change', (e) => { if (e.target.id !== 'all') return; shown.forEach((i) => (e.target.checked ? picked.add(i) : picked.delete(i))); render(); });
+    $('rows').addEventListener('change', (e) => { const i = Number(e.target.dataset.sel); if (!i) return; e.target.checked ? picked.add(i) : picked.delete(i); render(); });
+    $('unsel').addEventListener('click', () => { picked.clear(); render(); });
+    const bf = $('bulk-form');
+    bf.status.innerHTML = '<option value="">— no change —</option>' + Object.entries(STATUS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+    $('bulk').addEventListener('click', () => { bf.reset(); $('bulk-title').textContent = `Edit ${picked.size} selected task${picked.size > 1 ? 's' : ''}`; $('bulk-dlg').showModal(); });
+    $('bulk-cancel').addEventListener('click', () => $('bulk-dlg').close());
+    bf.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const changes = Object.fromEntries([...new FormData(bf)].filter(([, v]) => v));
+      if (!Object.keys(changes).length) return showMsg(msg, 'Fill at least one field to change.', 'err');
+      $('bulk-dlg').close();
+      try { await api('workplan/tasks/bulk', { method: 'POST', body: { ids: [...picked], changes } }); picked.clear(); await loadTasks(); showMsg(msg, ''); }
+      catch (err) { showMsg(msg, err.message, 'err'); }
+    });
     /* drag a column header to move it */
     let drag = null;
     head.addEventListener('dragstart', (e) => { drag = e.target.dataset?.col; if (drag) e.dataTransfer.setData('text/plain', drag); });

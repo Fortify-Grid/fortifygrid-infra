@@ -420,6 +420,24 @@ async function workplanApi(req, env, user, path, method) {
       await audit(env, user.email, 'delete task', `${WP}#${id}`);
       return json({ ok: true });
     }
+    if (method === 'POST' && rawId === 'bulk') {
+      /* Bulk edit: only shared fields (project, category, status, dates). Task text and dependencies stay per task. Missing/blank = unchanged. */
+      const ids = (Array.isArray(body.ids) ? body.ids : []).map(Number).filter(Boolean).slice(0, 500);
+      const c = body.changes || {};
+      if (!ids.length) throw new HttpError(400, 'Select at least one task.');
+      const { results: rows } = await env.DB.prepare(`SELECT * FROM wp_tasks WHERE id IN (${ids.map(() => '?').join(',')})`).bind(...ids).all();
+      const text = (k, n) => (c[k] == null || String(c[k]).trim() === '' ? null : String(c[k]).trim().slice(0, n));
+      const set = { project: text('project', 80), category: text('category', 80), status: WP_STATUS.includes(c.status) ? c.status : null,
+        start_date: wpDate(c.start_date), due_date: wpDate(c.due_date) };
+      if (!Object.values(set).some((v) => v !== null)) throw new HttpError(400, 'Nothing to change.');
+      const upd = rows.map((r) => ({ ...r, ...Object.fromEntries(Object.entries(set).filter(([, v]) => v !== null)) }));
+      const bad = upd.find((r) => r.start_date && r.due_date && r.due_date < r.start_date);
+      if (bad) throw new HttpError(400, `Task #${bad.id}: due date would be before start date.`);
+      await env.DB.batch(upd.map((r) => env.DB.prepare(`UPDATE wp_tasks SET project = ?1, category = ?2, status = ?3, start_date = ?4, due_date = ?5,
+          updated_at = ?6, updated_by = ?7 WHERE id = ?8`).bind(r.project, r.category, r.status, r.start_date, r.due_date, now(), user.email, r.id)));
+      await audit(env, user.email, 'bulk edit tasks', `${WP}#${ids.join(',')}`);
+      return json({ ok: true, changed: upd.length });
+    }
     if (method === 'POST') {
       const task = String(body.task || '').trim().slice(0, 500);
       if (!task) throw new HttpError(400, 'Task is required.');

@@ -10,7 +10,7 @@ Updated 2026-11-15.
 | Auto-deploy on push for website, FGAI-RAG and revenue-analysis-module (repo secrets set) | ✅ |
 | Dashboard folders: Market Data = heatmap, query. BTM Agentic Tools = revenue, ide. Staging site at `/staging/` (admins) | 2026-10-24 |
 | Directory `users(appId)`: apps list who can open them (IDE uses it for per-project permissions) | 2026-10-25 |
-| Workplan at **app.fortifygrid.com/workplan/** (in this Worker): tasks in D1 `wp_tasks`, week view + filters (Today, Current week, Next 2 weeks, Overdue), table on laptop / cards on phone. Tabs Workplan, System Pricing, Accounts ticked per user in its Admin tab (`user_tabs`). Pricing + Accounts are placeholders. Tasks have a Category; table columns can be dragged to reorder (saved per browser) and each has a filter dropdown |  2026-11-15 |
+| Workplan at **app.fortifygrid.com/workplan/** (in this Worker): tasks in D1 `wp_tasks`, week view + filters (Today, Current week, Next 2 weeks, Overdue), table on laptop / cards on phone. Tabs Workplan, System Pricing, Accounts ticked per user in its Admin tab (`user_tabs`). Pricing + Accounts are placeholders. Tasks have a Category; table columns can be dragged to reorder (saved per browser) and each has a filter dropdown. Tick rows → "Edit selected" changes project, category, status, dates on all (task name + dependencies stay per task) |  2026-11-15 |
 | IDE at **app.fortifygrid.com/ide/**: the portal checks the role and forwards to the `fortifygrid-ide` Worker (no public route) | 2026-10-25 |
 
 ## Open
