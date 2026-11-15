@@ -27,9 +27,41 @@
   <script type="module">
     import { api, esc, showMsg } from '/portal.js';
     const msg = document.getElementById('msg');
-    const tile = (a) => `<a class="tile" href="${esc(a.url)}"><h2>${esc(a.name)}</h2><p class="muted">${esc(a.description)}</p><span class="role">${esc(a.role)}</span></a>`;
+    const tile = (a) => `<a class="tile" data-app="${esc(a.id)}" href="${esc(a.url)}"><h2>${esc(a.name)}</h2><p class="muted">${esc(a.description)}</p><span class="role">${esc(a.role)}</span></a>`;
     const folder = (name, inner, n) => `<section class="fg-section" data-id="${esc(name)}"><div class="fg-section-head"><span class="fg-handle" title="Drag to move">⠿</span>
       <span class="fg-chev">▾</span><h2>${esc(name)} <span class="fg-muted">${n}</span></h2></div><div class="fg-section-body"><div class="tiles">${inner}</div></div></section>`;
+    // Admin: double-click a group name to rename it; drag a tile onto another group to move it; “New group” adds one.
+    function arrange(box, extra, EXTRA) {
+      const saveExtra = (xs) => { try { localStorage.setItem(EXTRA, JSON.stringify(xs)); } catch {} };
+      const bar = document.createElement('p');
+      bar.innerHTML = '<button class="ghost" type="button">＋ New group</button> <span class="muted">App roles, tabs and Access: Admin → App settings. Double-click a group name to rename it. Drag a tile onto a group to move it.</span>';
+      box.before(bar);
+      bar.querySelector('button').onclick = () => {
+        const n = (prompt('New group name') || '').trim().slice(0, 60);
+        if (!n || [...box.querySelectorAll('.fg-section')].some((s) => s.dataset.id === n)) return;
+        saveExtra([...extra(), n]); location.reload();
+      };
+      box.querySelectorAll('.fg-section').forEach((s) => { if (['Admin', 'Website', 'Other apps'].includes(s.dataset.id)) s.dataset.fixed = '1'; });
+      box.querySelectorAll('.tile[data-app]').forEach((t) => { t.draggable = true; });
+      box.addEventListener('dragstart', (e) => { const t = e.target.closest?.('.tile[data-app]'); if (t) { e.dataTransfer.setData('text/app', t.dataset.app); e.dataTransfer.effectAllowed = 'move'; } });
+      box.addEventListener('dragover', (e) => { if (e.dataTransfer.types.includes('text/app') && e.target.closest('.fg-section:not([data-fixed])')) e.preventDefault(); });
+      box.addEventListener('drop', run(async (e) => {
+        const app = e.dataTransfer.getData('text/app'), sec = e.target.closest('.fg-section:not([data-fixed])');
+        if (!app || !sec) return;
+        e.preventDefault();
+        await api('admin/folders', { method: 'POST', body: { move: { app, to: sec.dataset.id } } });
+        saveExtra(extra().filter((n) => n !== sec.dataset.id)); location.reload();
+      }));
+      box.addEventListener('dblclick', run(async (e) => {
+        const h = e.target.closest('.fg-section-head h2'), sec = h?.closest('.fg-section');
+        if (!sec || sec.dataset.fixed) return;
+        const from = sec.dataset.id, to = (prompt('Rename group', from) || '').trim().slice(0, 60);
+        if (!to || to === from) return;
+        await api('admin/folders', { method: 'POST', body: { rename: { from, to } } });
+        saveExtra(extra().map((n) => (n === from ? to : n))); location.reload();
+      }));
+    }
+    const run = (fn) => (e) => fn(e).catch((err) => showMsg(msg, err.message, 'err'));
     try {
       const me = await api('me');
       FG.configure({ app: 'portal', user: me.email });
@@ -45,6 +77,10 @@
         if (!folders.has(name)) folders.set(name, []);
         folders.get(name).push(a);
       }
+      // Admin: empty groups made with “New group” live in this browser until an app is dragged in.
+      const EXTRA = 'fg:extra-groups';
+      const extra = () => { try { return JSON.parse(localStorage.getItem(EXTRA) || '[]'); } catch { return []; } };
+      if (me.admin) for (const n of extra()) if (!folders.has(n)) folders.set(n, []);
       let html = [...folders].map(([name, apps]) => folder(name, apps.map(tile).join(''), apps.length)).join('');
       // One Admin tile: users, apps and folders, UI theme colours, API + schema documentation, activity. Admins only.
       if (me.admin) {
@@ -57,6 +93,7 @@
       }
       document.getElementById('tiles').innerHTML = html;
       FG.sections(document.getElementById('tiles'), { key: 'folders' });
+      if (me.admin) arrange(document.getElementById('tiles'), extra, EXTRA);
       if (!me.apps.length && !me.admin) showMsg(msg, 'No apps yet. Ask a FortifyGrid admin to give you access.');
     } catch (e) {
       showMsg(msg, e.message, 'err');

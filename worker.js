@@ -302,6 +302,19 @@ async function saveFolders(env, actor, body) {
     await env.DB.prepare('UPDATE app_folders SET folder = ? WHERE folder = ?').bind(to, String(r.from || '')).run();
     await audit(env, actor.email, 'rename folder', String(r.from || ''), to);
   }
+  if (body.move) {
+    // Drag a tile to another group: the app takes that group's position (a new group goes last); empty `to` removes it from any group.
+    const id = String(body.move.app || ''), to = String(body.move.to || '').trim().slice(0, 60);
+    if (!(await getApp(env, id))) throw new HttpError(404, 'Unknown app.');
+    if (!to) await env.DB.prepare('DELETE FROM app_folders WHERE app_id = ?').bind(id).run();
+    else {
+      const target = (await env.DB.prepare('SELECT MIN(folder_sort) AS s FROM app_folders WHERE folder = ?').bind(to).first())?.s;
+      const last = (await env.DB.prepare('SELECT MAX(folder_sort) AS s FROM app_folders').first())?.s;
+      await env.DB.prepare(`INSERT INTO app_folders (app_id, folder, folder_sort) VALUES (?, ?, ?)
+        ON CONFLICT(app_id) DO UPDATE SET folder = excluded.folder, folder_sort = excluded.folder_sort`).bind(id, to, target ?? (last == null ? 10 : last + 10)).run();
+    }
+    await audit(env, actor.email, 'move app', id, to);
+  }
   if (Array.isArray(body.order)) {
     await env.DB.batch(body.order.map((name, i) => env.DB.prepare('UPDATE app_folders SET folder_sort = ? WHERE folder = ?').bind((i + 1) * 10, String(name))));
     await audit(env, actor.email, 'order folders', '', body.order.join(', ').slice(0, 300));

@@ -81,7 +81,8 @@
   };
 
   /* ---------- shell: sidebar with brand · Apps · sections · channels · you ----------
-     FG.shell(asideEl, { app, name, icon, home, sections: [{id, label, href?, locked?}], current, onSection(id),
+     FG.shell(asideEl, { app, name, icon, home, sections: [{id, label, href?, locked?, children?: [{id, label}]}], current, onSection(id),
+       (a section with children is a heading: click opens / closes its list, a child opens like a section; open state kept per browser)
        channelsTitle, channels: [{id, label, badge?}], channel, onChannel(id), user, signOut })
      → { update(partialOpts), toggle(show) }. Sections and channels can be dragged; order saved per browser.
      « hides the sidebar to a slim ☰ rail (phone: a small bar); the choice is kept for every app in this browser. */
@@ -91,6 +92,9 @@
     // Hide / show: one setting for every app in this browser (not per app or person), so the choice follows you.
     let hidden = FG.store.get('fg:sidebar:hidden', false);
     const fold = () => { side.classList.toggle('hidden', hidden); side.closest('.fg-app')?.classList.toggle('fg-side-hidden', hidden); };
+    const openKey = FG.key('nav:open');
+    let open = FG.store.get(openKey, null);
+    const isOpen = (x) => (open ? open.includes(x.id) : (x.children || []).some((c) => c.id === o.current));
     const draw = () => {
       const secs = FG.orderBy(o.sections || [], FG.store.get(FG.key('nav:sections')), (s) => s.id);
       const chans = FG.orderBy(o.channels || [], FG.store.get(FG.key('nav:channels')), (c) => c.id);
@@ -105,7 +109,10 @@
         <div class="fg-apps"><button type="button" class="fg-apps-btn" aria-haspopup="menu" aria-expanded="${menu}">Apps ▾</button>
           ${menu ? `<div class="fg-apps-menu" role="menu"><a role="menuitem" href="${FG.HOME.url}">${esc(FG.HOME.name)}</a><hr>${FG.APPS.map((a) =>
             `<a role="menuitem" href="${a.url}"${a.id === o.app ? ' class="on" aria-current="page"' : ''}>${esc(a.name)}</a>`).join('')}</div>` : ''}</div>
-        ${secs.length ? `<nav class="fg-nav sections" aria-label="Sections">${secs.map((s) => item(s, s.id === o.current, 'section')).join('')}</nav>` : ''}
+        ${secs.length ? `<nav class="fg-nav sections" aria-label="Sections">${secs.map((s) => (s.children
+          ? `<div class="fg-nav-group" data-id="${esc(s.id)}"><button type="button" class="fg-nav-item fg-nav-head${s.children.some((c) => c.id === o.current) ? ' on' : ''}" data-group="${esc(s.id)}" aria-expanded="${isOpen(s)}">${esc(s.label)}<span class="fg-chev">${isOpen(s) ? '▾' : '▸'}</span></button>
+            ${isOpen(s) ? `<div class="fg-nav-sub">${s.children.map((c) => item(c, c.id === o.current, 'section')).join('')}</div>` : ''}</div>`
+          : item(s, s.id === o.current, 'section'))).join('')}</nav>` : ''}
         ${chans.length ? `<div class="fg-side-h">${esc(o.channelsTitle || 'Channels')}</div><nav class="fg-nav channels" aria-label="${esc(o.channelsTitle || 'Channels')}">${chans.map((c) => item(c, String(c.id) === String(o.channel), 'channel')).join('')}</nav>` : ''}
         <div class="fg-side-foot">${o.user ? `<span class="fg-who">${esc(o.user)}</span>` : ''}<a href="${FG.HOME.url}">← All apps</a><a href="${esc(o.signOut || '/cdn-cgi/access/logout')}">Sign out</a></div>`;
     };
@@ -116,8 +123,16 @@
         return;
       }
       if (e.target.closest('.fg-apps-btn')) { menu = !menu; draw(); return; }
+      const gh = e.target.closest('[data-group]');
+      if (gh) {
+        const g = (o.sections || []).find((x) => x.id === gh.dataset.group);
+        const ids = new Set(open || (o.sections || []).filter((x) => x.children && isOpen(x)).map((x) => x.id));
+        if (isOpen(g)) ids.delete(g.id); else ids.add(g.id);
+        open = [...ids]; FG.store.set(openKey, open);
+        draw(); return;
+      }
       const it = e.target.closest('[data-kind]'); if (!it || it.tagName === 'A') return;
-      const id = (o.channels || []).concat(o.sections || []).find((x) => String(x.id) === it.dataset.id)?.id;
+      const id = (o.channels || []).concat((o.sections || []).flatMap((x) => [x, ...(x.children || [])])).find((x) => String(x.id) === it.dataset.id)?.id;
       if (it.dataset.kind === 'section') { o.current = id; o.onSection?.(id); } else { o.channel = id; o.onChannel?.(id); }
       draw();
     });
@@ -336,7 +351,7 @@
       id: a.index?.app || 'app', name: a.index?.name || a.index?.app || 'App', idx: a.index || {}, routes: a.api?.routes || [],
       tables: a.schema?.tables || {}, fks: a.schema?.foreignKeys || [], mods: a.index?.modules || [],
     }));
-    const st = { app: apps[0]?.id, mod: '', q: '' };
+    const st = { app: apps[0]?.id, mod: '', q: '', tab: 'api' };
     const tid = (a, t) => `fg-doc-t-${a}-${t}`;
     const cur = () => apps.find((a) => a.id === st.app) || apps[0];
     const list = (xs) => (xs?.length ? `<ul>${xs.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '');
@@ -370,8 +385,9 @@
       const rs = routesOf(a, m), ts = tablesOf(a, m);
       return `<h3>${esc(mod.id)} <small>${esc(mod.label || '')}</small></h3>
         ${mod.ui?.length ? `<p class="fg-muted">Screens: ${mod.ui.map((u) => `<code>${esc(u)}</code>`).join(', ')}</p>` : ''}
-        <h4 class="fg-doc-sub">API routes <span class="fg-badge">${rs.length}</span></h4>${rs.length ? rs.map(route).join('') : none('routes', a)}
-        <h4 class="fg-doc-sub">Database tables <span class="fg-badge">${ts.length}</span></h4>${ts.length ? ts.map((t) => table(a, t)).join('') : none('tables', a)}`;
+        <div class="fg-docs-tabs" role="tablist"><button type="button" role="tab" class="${st.tab === 'api' ? 'on' : ''}" data-tab="api">API routes <span class="fg-badge">${rs.length}</span></button>
+          <button type="button" role="tab" class="${st.tab === 'tables' ? 'on' : ''}" data-tab="tables">Database tables <span class="fg-badge">${ts.length}</span></button></div>
+        ${st.tab === 'api' ? (rs.length ? rs.map(route).join('') : none('routes', a)) : (ts.length ? ts.map((t) => table(a, t)).join('') : none('tables', a))}`;
     };
     const overview = (a) => {
       const c = a.idx.counts || {}, sto = a.idx.storage || {};
@@ -406,7 +422,8 @@
     const go = (app, mod) => { st.app = app; st.mod = mod || ''; st.q = ''; box.querySelector('input').value = ''; draw(); box.scrollIntoView?.({ block: 'nearest' }); };
     box.addEventListener('click', (e) => {
       const t = e.target.closest('a[data-t]');
-      if (t) { e.preventDefault(); const a = apps.find((x) => x.id === t.dataset.app); go(a.id, a.tables[t.dataset.t]?.module); document.getElementById(tid(a.id, t.dataset.t))?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+      if (t) { e.preventDefault(); const a = apps.find((x) => x.id === t.dataset.app); st.tab = 'tables'; go(a.id, a.tables[t.dataset.t]?.module); document.getElementById(tid(a.id, t.dataset.t))?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+      const tb = e.target.closest('.fg-docs-tabs [data-tab]'); if (tb) { st.tab = tb.dataset.tab; draw(); return; }
       const b = e.target.closest('[data-app][data-mod]'); if (b) go(b.dataset.app, b.dataset.mod);
     });
     box.querySelector('input').addEventListener('input', (e) => { st.q = e.target.value.trim().toLowerCase(); draw(); });
