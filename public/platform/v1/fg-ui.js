@@ -367,7 +367,7 @@
       const items = st.view === 'api' ? rs : ts;
       body.innerHTML = items.length ? groups.map((m) => { const g = items.filter((x) => x.module === m); if (!g.length) return '';
         return `<section class="fg-doc-mod"><h3>${esc(m)} <small>${esc(label[m] || '')}</small></h3>${g.map(st.view === 'api' ? route : table).join('')}</section>`; }).join('')
-        : `<p class="fg-muted">${st.view === 'api' ? 'No routes' : 'No tables'} match.</p>`;
+        : `<p class="fg-muted">${st.view === 'tables' && !Object.keys(tables).length ? 'This app has no database tables (its data lives in files or another service; see the API).' : `${st.view === 'api' ? 'No routes' : 'No tables'} match.`}</p>`;
       box.querySelectorAll('[data-view]').forEach((b) => b.classList.toggle('on', b.dataset.view === st.view));
     };
     const c = idx.counts || {};
