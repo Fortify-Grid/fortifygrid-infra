@@ -56,6 +56,15 @@
     </section>
 
     <section data-panel="settings" hidden>
+      <h3>Theme colours</h3>
+      <p class="muted">Every app on the shared UI (portal, Planner, heatmap, query, revenue, IDE) uses these within a minute.</p>
+      <form class="add" id="theme">
+        <label>Main (sidebar, main buttons)<input type="color" name="theme_main"></label>
+        <label>Accent 1 (open section)<input type="color" name="theme_accent1"></label>
+        <label>Accent 2 (chosen chips, hover)<input type="color" name="theme_accent2"></label>
+        <button type="submit">Save colours</button><button type="button" class="ghost" id="theme-reset">Back to defaults</button>
+      </form>
+      <h3>Other settings</h3>
       <p class="muted">Site configuration. <code>dashboard_notice</code> shows as a banner on everyone's dashboard.</p>
       <form class="add" id="add-setting">
         <label>Key<input type="text" name="key" required placeholder="dashboard_notice" pattern="[a-z][a-z0-9_]{1,40}"></label>
@@ -65,6 +74,13 @@
       <div id="settings"></div>
       <h3>Sign-in</h3>
       <div class="fg-table-wrap"><table class="fg-table"><tbody id="logins"></tbody></table></div>
+    </section>
+
+    <section data-panel="docs" hidden>
+      <p class="muted">API routes and database tables of every app, generated from code annotations (<code>npm run docs</code>; CI fails if they are stale).
+        Each app also has its own Documentation section, for its admins.</p>
+      <div class="fg-bar"><label>App <select id="docs-app"></select></label><a id="docs-open" target="_blank" rel="noopener" hidden>Open in the app ↗</a></div>
+      <div id="docs-box"></div>
     </section>
 
     <section data-panel="activity" hidden>
@@ -83,7 +99,7 @@
     const tables = {};
 
     /* sections (sidebar; remembered in the URL hash) */
-    const SECTIONS = { users: 'Users', apps: 'Apps', settings: 'Settings', activity: 'Activity' };
+    const SECTIONS = { users: 'Users', apps: 'Apps', settings: 'Settings', docs: 'Documentation', activity: 'Activity' };
     let shell;
     function showTab(name) {
       if (!SECTIONS[name]) name = 'users';
@@ -92,6 +108,22 @@
       shell?.update({ current: name });
       if (location.hash !== `#${name}`) history.replaceState(null, '', `#${name}`);
       if (name === 'activity') loadAudit().catch((e) => showMsg(msg, e.message, 'err'));
+      if (name === 'docs') showDocs();
+    }
+
+    /* documentation: this portal's docs inline; other apps' docs open in that app (its own /api/docs needs its login) */
+    function showDocs() {
+      const sel = $('docs-app');
+      if (!sel.options.length) {
+        sel.innerHTML = '<option value="portal">Portal, admin, Planner</option>' + state.apps.filter((a) => a.id !== 'portal' && a.url)
+          .map((a) => `<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('');
+        sel.addEventListener('change', showDocs);
+      }
+      const app = state.apps.find((a) => a.id === sel.value);
+      const link = $('docs-open');
+      if (!app) { link.hidden = true; FG.docs($('docs-box'), { url: '/api/admin/docs' }); return; }
+      link.hidden = false; link.href = `${app.url.replace(/#.*$/, '')}#docs`;
+      $('docs-box').innerHTML = `<p>${esc(app.name)} keeps its documentation in its own Documentation section (admins of that app). <a href="${esc(link.href)}" target="_blank" rel="noopener">Open ${esc(app.name)} → Documentation ↗</a></p>`;
     }
     addEventListener('hashchange', () => showTab(location.hash.slice(1) || 'users'));
 
@@ -167,6 +199,8 @@
         { key: 'do', label: '', cell: () => '<span class="row-actions"><button class="ghost" data-act="edit">Edit</button><button class="danger" data-act="delete">Delete</button></span>' },
       ] });
       tables.settings.setRows(state.settings);
+      // Theme form: saved value, else the kit default.
+      for (const k of Object.keys(THEME)) $('theme')[k].value = state.settings.find((x) => x.key === k)?.value || DEFAULTS[k];
       $('logins').innerHTML = state.logins.length
         ? state.logins.map((l) => `<tr><td>${esc(l.name)}</td><td class="muted">${esc(l.type)}</td></tr>`).join('')
         : '<tr><td class="muted">Login methods are managed in Cloudflare Zero Trust → Settings → Authentication (Google + One-time PIN).</td></tr>';
@@ -288,6 +322,26 @@
       showMsg(msg, `Saved tabs for ${tabsApp.name}. Users see the change within a minute.`, 'ok');
       await load();
       openTabs(state.apps.find((x) => x.id === tabsApp.id));
+    }));
+
+    /* theme colours (settings theme_main / theme_accent1 / theme_accent2 → kit tokens via /platform/v1/theme.css) */
+    const THEME = { theme_main: '--fg-mint', theme_accent1: '--fg-ice', theme_accent2: '--fg-apricot' };
+    const DEFAULTS = { theme_main: '#98ff98', theme_accent1: '#bae6fd', theme_accent2: '#fdba74' };
+    const preview = () => { for (const [k, tok] of Object.entries(THEME)) document.documentElement.style.setProperty(tok, $('theme')[k].value); };
+    $('theme').addEventListener('input', preview);
+    $('theme').addEventListener('submit', run(async (e) => {
+      e.preventDefault();
+      for (const k of Object.keys(THEME)) await api('admin/settings', { method: 'POST', body: { key: k, value: $('theme')[k].value } });
+      showMsg(msg, 'Saved theme colours. Every app shows them within a minute (on its next page load).', 'ok');
+      await load();
+    }));
+    $('theme-reset').addEventListener('click', run(async () => {
+      if (!confirm('Go back to the default colours (mint, ice blue, apricot) in every app?')) return;
+      for (const k of Object.keys(THEME)) if (state.settings.some((x) => x.key === k)) await api(`admin/settings/${encodeURIComponent(k)}`, { method: 'DELETE' });
+      for (const [k, v] of Object.entries(DEFAULTS)) $('theme')[k].value = v;
+      document.documentElement.removeAttribute('style');
+      showMsg(msg, 'Back to the default colours.', 'ok');
+      await load();
     }));
 
     /* settings */

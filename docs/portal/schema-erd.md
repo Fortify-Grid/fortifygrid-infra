@@ -128,7 +128,7 @@ Module **access** · Tier 1 · D1 (hot app state, roles, small tables) · key (e
 ## app_folders
 
 Dashboard folder (section) each app's tile sits in.  
-Module **portal** · Tier 1 · D1 (hot app state, roles, small tables) · key (app_id) · `schema.sql:174`
+Module **portal** · Tier 1 · D1 (hot app state, roles, small tables) · key (app_id) · `schema.sql:175`
 
 | Column | Type | Null | Default | Notes |
 |---|---|---|---|---|
@@ -139,7 +139,7 @@ Module **portal** · Tier 1 · D1 (hot app state, roles, small tables) · key (a
 ## app_tabs
 
 Tabs each app has; its UI marks them data-tab="<tab>".  
-Module **access** · Tier 1 · D1 (hot app state, roles, small tables) · key (app_id, tab) · `schema.sql:88`
+Module **access** · Tier 1 · D1 (hot app state, roles, small tables) · key (app_id, tab) · `schema.sql:89`
 
 | Column | Type | Null | Default | Notes |
 |---|---|---|---|---|
@@ -186,7 +186,7 @@ Indexes: `audit_at (at)`
 ## role_tabs
 
 Which role may see which tab of an app.  
-Module **access** · Tier 1 · D1 (hot app state, roles, small tables) · key (app_id, role, tab) · `schema.sql:101`
+Module **access** · Tier 1 · D1 (hot app state, roles, small tables) · key (app_id, role, tab) · `schema.sql:102`
 
 | Column | Type | Null | Default | Notes |
 |---|---|---|---|---|
@@ -197,7 +197,7 @@ Module **access** · Tier 1 · D1 (hot app state, roles, small tables) · key (a
 ## settings
 
 Site config edited in admin → Settings (e.g. dashboard_notice banner).  
-Module **portal** · Tier 1 · D1 (hot app state, roles, small tables) · key (key) · `schema.sql:75`
+Module **portal** · Tier 1 · D1 (hot app state, roles, small tables) · key (key) · `schema.sql:76`
 
 | Column | Type | Null | Default | Notes |
 |---|---|---|---|---|
@@ -209,7 +209,7 @@ Module **portal** · Tier 1 · D1 (hot app state, roles, small tables) · key (k
 ## user_tabs
 
 Extra tabs for one user on top of their role's tabs (Planner Admin tab edits these).  
-Module **access** · Tier 1 · D1 (hot app state, roles, small tables) · key (app_id, email, tab) · `schema.sql:210`
+Module **access** · Tier 1 · D1 (hot app state, roles, small tables) · key (app_id, email, tab) · `schema.sql:211`
 
 | Column | Type | Null | Default | Notes |
 |---|---|---|---|---|
@@ -235,7 +235,7 @@ Module **access** · Tier 1 · D1 (hot app state, roles, small tables) · key (e
 ## wp_names
 
 Planner name per person; tasks whose Depends-on note names them show in their view.  
-Module **planner** · Tier 1 · D1 (hot app state, roles, small tables) · key (email) · `schema.sql:282`
+Module **planner** · Tier 1 · D1 (hot app state, roles, small tables) · key (email) · `schema.sql:283`
 
 | Column | Type | Null | Default | Notes |
 |---|---|---|---|---|
@@ -245,7 +245,7 @@ Module **planner** · Tier 1 · D1 (hot app state, roles, small tables) · key (
 ## wp_shares
 
 Workstreams shared with a member (they see, add and edit its tasks).  
-Module **planner** · Tier 1 · D1 (hot app state, roles, small tables) · key (workstream_id, email) · `schema.sql:292`
+Module **planner** · Tier 1 · D1 (hot app state, roles, small tables) · key (workstream_id, email) · `schema.sql:293`
 
 | Column | Type | Null | Default | Notes |
 |---|---|---|---|---|
@@ -255,7 +255,7 @@ Module **planner** · Tier 1 · D1 (hot app state, roles, small tables) · key (
 ## wp_tasks
 
 Planner tasks. Dates YYYY-MM-DD; complete tasks are deleted 30 days after completed_at.  
-Module **planner** · Tier 1 · D1 (hot app state, roles, small tables) · key (id) · `schema.sql:243`
+Module **planner** · Tier 1 · D1 (hot app state, roles, small tables) · key (id) · `schema.sql:244`
 
 | Column | Type | Null | Default | Notes |
 |---|---|---|---|---|
@@ -277,7 +277,7 @@ Module **planner** · Tier 1 · D1 (hot app state, roles, small tables) · key (
 ## wp_workstreams
 
 Planner workstreams (sub-tabs / channels). Edited in the Planner Admin tab.  
-Module **planner** · Tier 1 · D1 (hot app state, roles, small tables) · key (id) · `schema.sql:265`
+Module **planner** · Tier 1 · D1 (hot app state, roles, small tables) · key (id) · `schema.sql:266`
 
 | Column | Type | Null | Default | Notes |
 |---|---|---|---|---|

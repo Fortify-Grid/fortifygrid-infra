@@ -6,7 +6,8 @@
   /* Palette: Mint Green is the main colour (sidebar, main buttons); Ice Blue (open section) and Warm Apricot (chosen
      chips, hover, drag marks) only where a second or third colour is needed. Fills carry dark text (--fg-accent-ink); --fg-green is the dark accent
      for text, borders and ticks (kept under its old name so apps that use it keep working). */
-  --fg-mint: #98FF98; --fg-ice: #BAE6FD; --fg-apricot: #FDBA74;
+  --fg-mint: #98FF98; --fg-ice: #BAE6FD; --fg-apricot: #FDBA74;   /* defaults; admin → Settings → Theme colours (theme.css) */
+  --fg-mint-edge: color-mix(in srgb, var(--fg-mint) 70%, #000); --fg-apricot-edge: color-mix(in srgb, var(--fg-apricot) 75%, #000);
   --fg-accent: var(--fg-mint); --fg-accent-ink: #1E1E1E;
   --fg-green: #0C4A6E; --fg-coral: #EF4B3F; --fg-ink: #1E1E1E; --fg-muted: rgba(61, 58, 52, .7);
   --fg-bg: #F7F7F5; --fg-card: #fff; --fg-line: #E8E6E3; --fg-hover: #F4F4F2; --fg-tint: #FFEDD5;
@@ -32,7 +33,7 @@
 .fg-nav { display: flex; flex-direction: column; gap: 2px; }
 .fg-nav-item { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: none; border: 0; border-radius: var(--fg-radius);
   color: var(--fg-side-ink); padding: 6px 10px; font: inherit; font-size: 15px; min-height: 32px; text-decoration: none; cursor: pointer; }
-.fg-nav-item:hover { background: rgba(253, 186, 116, .45); color: var(--fg-ink); }
+.fg-nav-item:hover { background: color-mix(in srgb, var(--fg-apricot) 55%, transparent); color: var(--fg-ink); }
 .fg-nav-item.on { background: var(--fg-side-on); color: var(--fg-accent-ink); font-weight: 600; }
 .fg-nav-item.locked { color: rgba(30, 30, 30, .32); cursor: not-allowed; background: none; }
 .fg-nav.channels .fg-nav-item::before { content: '#'; opacity: .6; font-weight: 400; }
@@ -68,7 +69,7 @@
 .fg-muted { color: var(--fg-muted); font-size: 14px; }
 .fg-pill { font-size: 13px; color: var(--fg-muted); background: var(--fg-hover); border-radius: 12px; padding: 3px 10px; }
 .fg-badge { display: inline-block; font-size: 12px; background: var(--fg-tint); color: var(--fg-green); border-radius: 10px; padding: 2px 8px; }
-.fg-btn { font: inherit; font-size: 14px; font-weight: 500; padding: 6px 12px; border-radius: var(--fg-radius); border: 1px solid #5FD35F;
+.fg-btn { font: inherit; font-size: 14px; font-weight: 500; padding: 6px 12px; border-radius: var(--fg-radius); border: 1px solid var(--fg-mint-edge);
   background: var(--fg-accent); color: var(--fg-accent-ink); cursor: pointer; }
 .fg-btn:hover { filter: brightness(.96); }
 .fg-btn.ghost { background: transparent; color: var(--fg-green); border-color: var(--fg-green); }
@@ -88,7 +89,7 @@
 .fg-chip { background: var(--fg-card); color: var(--fg-ink); border: 1px solid var(--fg-line); white-space: nowrap; border-radius: 16px; padding: 5px 12px;
   font: inherit; font-size: 13px; cursor: pointer; }
 .fg-chip:hover { background: var(--fg-hover); }
-.fg-chip.on { background: var(--fg-apricot); color: var(--fg-accent-ink); border-color: #F59E0B; }
+.fg-chip.on { background: var(--fg-apricot); color: var(--fg-accent-ink); border-color: var(--fg-apricot-edge); }
 .fg-chip .fg-n { margin-left: 4px; opacity: .6; }
 .fg-count { font-size: 13px; color: var(--fg-muted); }
 .fg-link { background: none; border: 0; padding: 0; font: inherit; font-size: 13px; color: var(--fg-green); cursor: pointer; text-decoration: underline; }
@@ -106,9 +107,9 @@
 .fg-table th[data-sort] { cursor: pointer; user-select: none; white-space: nowrap; }
 .fg-table th[draggable="true"] { cursor: grab; }
 .fg-table th.asc::after { content: ' ▲'; } .fg-table th.desc::after { content: ' ▼'; }
-.fg-table .over { outline: 2px dashed #F59E0B; outline-offset: -2px; }
+.fg-table .over { outline: 2px dashed var(--fg-apricot-edge); outline-offset: -2px; }
 .fg-table .fg-resize { position: absolute; top: 0; bottom: 0; right: -3px; width: 6px; cursor: col-resize; z-index: 2; }
-.fg-table .fg-resize:hover { background: rgba(253, 186, 116, .7); }
+.fg-table .fg-resize:hover { background: var(--fg-apricot); }
 .fg-table tr.fg-flt th { padding: 4px 6px; font-weight: normal; text-transform: none; letter-spacing: 0; }
 .fg-table tr.fg-flt select, .fg-table tr.fg-flt input { width: 100%; min-width: 90px; font: inherit; font-size: 13px; padding: 4px 6px; border: 1px solid var(--fg-line); border-radius: var(--fg-radius); background: var(--fg-card); color: var(--fg-ink); }
 .fg-table tbody tr:hover > td { background: var(--fg-hover); }
@@ -132,7 +133,7 @@
 .fg-section.folded .fg-chev { transform: rotate(-90deg); }
 .fg-section > .fg-section-body { padding: 0 14px 14px; }
 .fg-section.folded > .fg-section-body { display: none; }
-.fg-section.over { outline: 2px dashed #F59E0B; outline-offset: 2px; }
+.fg-section.over { outline: 2px dashed var(--fg-apricot-edge); outline-offset: 2px; }
 .dragging { opacity: .5; }
 
 /* ---------- ⓘ help ---------- */
@@ -149,6 +150,34 @@
 .fg-pager .fg-select { margin-left: auto; }
 
 /* ---------- phone: sidebar becomes a top bar; tables marked .cards become cards ---------- */
+
+/* ---------- docs: FG.docs Javadoc-style API / schema viewer ---------- */
+.fg-docs { max-width: 1100px; }
+.fg-docs-head h2 { margin: 6px 0 4px; font-size: 22px; }
+.fg-docs-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0 16px; }
+.fg-docs-bar input { flex: 1 1 220px; min-width: 0; font: inherit; padding: 6px 10px; border: 1px solid var(--fg-line); border-radius: var(--fg-radius); background: var(--fg-card); color: var(--fg-ink); }
+.fg-docs-bar select { font: inherit; padding: 6px 8px; border: 1px solid var(--fg-line); border-radius: var(--fg-radius); background: var(--fg-card); color: var(--fg-ink); }
+.fg-seg { display: inline-flex; border: 1px solid var(--fg-line); border-radius: var(--fg-radius); overflow: hidden; }
+.fg-seg button { border: 0; background: var(--fg-card); color: var(--fg-ink); font: inherit; padding: 6px 14px; cursor: pointer; }
+.fg-seg button + button { border-left: 1px solid var(--fg-line); }
+.fg-seg button.on { background: var(--fg-accent); color: var(--fg-accent-ink); font-weight: 600; }
+.fg-doc-mod h3 { font-size: 15px; text-transform: uppercase; letter-spacing: .04em; margin: 22px 0 8px; border-bottom: 2px solid var(--fg-ice); padding-bottom: 4px; }
+.fg-doc-mod h3 small { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--fg-muted); margin-left: 6px; }
+.fg-doc { border: 1px solid var(--fg-line); border-radius: 8px; padding: 10px 14px; margin: 0 0 10px; background: var(--fg-card); scroll-margin-top: 70px; }
+.fg-doc h4 { margin: 0 0 6px; font-size: 15px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; overflow-wrap: anywhere; }
+.fg-doc h4 small { font-weight: 400; color: var(--fg-muted); }
+.fg-doc p { margin: 4px 0; }
+.fg-doc dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 8px 0 0; font-size: 13px; }
+.fg-doc dt { color: var(--fg-muted); } .fg-doc dd { margin: 0; overflow-wrap: anywhere; } .fg-doc dd ul { margin: 0; padding-left: 18px; }
+.fg-doc code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .92em; }
+.fg-doc-m { font: 700 11px/1 ui-monospace, Menlo, monospace; padding: 4px 6px; border-radius: 4px; background: var(--fg-ice); color: var(--fg-accent-ink); }
+.fg-doc-m.GET { background: var(--fg-mint); } .fg-doc-m.POST, .fg-doc-m.PUT, .fg-doc-m.PATCH { background: var(--fg-apricot); } .fg-doc-m.DELETE { background: #fecaca; }
+.fg-doc-cols { overflow-x: auto; } .fg-doc-cols table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.fg-doc-cols th, .fg-doc-cols td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--fg-line); vertical-align: top; }
+.fg-doc-cols th { color: var(--fg-muted); font-weight: 600; }
+.fg-doc a { color: var(--fg-green); }
+.fg-docs-err { color: var(--fg-coral); }
+@media (max-width: 640px) { .fg-doc dl { grid-template-columns: 1fr; } .fg-doc dt { margin-top: 4px; } }
 @media (max-width: 720px) {
   .fg-app { display: block; }
   .fg-side { position: sticky; top: 0; z-index: 10; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px;

@@ -30,8 +30,8 @@ form.add { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; backgroun
 label { display: flex; flex-direction: column; font-size: 12px; color: var(--muted); gap: 4px; }
 input[type=email], input[type=text], select { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; min-width: 0; }
 label.check { flex-direction: row; align-items: center; gap: 6px; color: var(--ink); font-size: 14px; }
-button { font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 4px; border: 1px solid var(--green); background: var(--green); color: #fff; cursor: pointer; }
-button.ghost { background: transparent; color: var(--green); }
+button { font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 4px; border: 1px solid var(--fg-mint-edge, #5FD35F); background: var(--fg-accent, #98FF98); color: var(--fg-accent-ink, #1E1E1E); cursor: pointer; }
+button.ghost { background: transparent; color: var(--green); border-color: var(--green); }
 button.danger { border-color: var(--coral); background: transparent; color: var(--coral); }
 button:disabled { opacity: .5; cursor: default; }
 .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
