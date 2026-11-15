@@ -95,7 +95,7 @@
       <p class="muted">Tick the tabs each person may open. Ticking any tab adds them to Planner; unticking all removes them.
         Planner admins see every tab (set the role at <a href="/admin/">Manage users</a>).</p>
       <h3>Workstreams</h3>
-      <p class="muted">The sub-tabs of Planner's Tasks tab. Rename, reorder or add. A workstream that still has tasks can't be deleted: move them first (select tasks, Edit selected, Workstream).</p>
+      <p class="muted">The sub-tabs of Planner's Tasks tab. Rename, reorder or add (this is the default order; each person can also drag the sub-tabs into their own order, saved in their browser). A workstream that still has tasks can't be deleted: move them first (select tasks, Edit selected, Workstream).</p>
       <div class="table-wrap"><table><tbody id="wslist"></tbody></table></div>
       <form id="ws-add" class="bar"><input name="name" placeholder="New workstream" required maxlength="40"><button>Add</button></form>
       <h3>Tab access</h3>
@@ -142,6 +142,9 @@
     const msg = $('msg');
     const TABS = { workplan: 'Tasks', pricing: 'System Pricing', accounts: 'Accounts', admin: 'Admin' };
     const STATUS = { not_started: 'Not started', in_progress: 'In progress', blocked: 'Blocked', complete: 'Complete' };
+
+    const lsGet = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
+    const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 
     /* dates: local, as YYYY-MM-DD; ISO weeks start Monday */
     const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -197,6 +200,11 @@
     let order = DEFAULT, flt = {}, picked = new Set(), shown = [], wss = [], ws = 0;
     const inWs = () => tasks.filter((t) => t.workstream_id === ws);
     try { const o = JSON.parse(localStorage.getItem('wp-cols')); if (Array.isArray(o) && o.length === DEFAULT.length && DEFAULT.every((k) => o.includes(k))) order = o; } catch {}
+    const view = lsGet('wp-view');   /* saved per browser: chip filter + sort */
+    if (view && COLS[view.sort?.key] && ['all', 'today', 'current', 'next2', 'overdue'].includes(view.filter)) {
+      filter = view.filter; sort = { key: view.sort.key, dir: view.sort.dir < 0 ? -1 : 1 };
+      document.querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', c.dataset.f === filter));
+    }
     const NONE = '\u0000';
     const optVals = (k) => {
       const c = COLS[k], vals = [...new Set(inWs().map(c.f))];
@@ -232,15 +240,29 @@
     }
     /* workstreams = sub-tabs; edited in Admin */
     const wsOpts = (none) => (none ? '<option value="">— no change —</option>' : '') + wss.map((w) => `<option value="${w.id}">${esc(w.name)}</option>`).join('');
+    /* sub-tab order: admin order is the default; dragging saves your own order in this browser */
+    const wsSorted = () => { const o = lsGet('wp-wsorder') || [], pos = (w) => (o.includes(w.id) ? o.indexOf(w.id) : 999 + w.sort); return [...wss].sort((a, b) => pos(a) - pos(b)); };
+    const drawWsTabs = () => { $('ws-tabs').innerHTML = wsSorted().map((w) => `<button class="${w.id === ws ? 'on' : ''}" data-ws="${w.id}" draggable="true" title="Drag to reorder">${esc(w.name)}</button>`).join(''); };
     async function loadWs() {
       wss = await api('workplan/workstreams');
-      if (!wss.some((w) => w.id === ws)) { let s = 0; try { s = Number(localStorage.getItem('wp-ws')); } catch {} ws = wss.some((w) => w.id === s) ? s : wss[0]?.id || 0; }
-      $('ws-tabs').innerHTML = wss.map((w) => `<button class="${w.id === ws ? 'on' : ''}" data-ws="${w.id}">${esc(w.name)}</button>`).join('');
+      if (!wss.some((w) => w.id === ws)) { const s = Number(lsGet('wp-ws')); ws = wss.some((w) => w.id === s) ? s : wsSorted()[0]?.id || 0; }
+      drawWsTabs();
       form.workstream_id.innerHTML = wsOpts(false); $('bulk-form').workstream_id.innerHTML = wsOpts(true);
     }
+    let wdrag = null;
+    $('ws-tabs').addEventListener('dragstart', (e) => { wdrag = Number(e.target.dataset.ws) || null; });
+    $('ws-tabs').addEventListener('dragover', (e) => { if (wdrag && e.target.closest('[data-ws]')) e.preventDefault(); });
+    $('ws-tabs').addEventListener('drop', (e) => {
+      e.preventDefault(); const to = Number(e.target.closest('[data-ws]')?.dataset.ws);
+      if (wdrag && to && to !== wdrag) {
+        const ids = wsSorted().map((w) => w.id), i = ids.indexOf(to); ids.splice(ids.indexOf(wdrag), 1); ids.splice(i, 0, wdrag);
+        lsSet('wp-wsorder', ids); drawWsTabs();
+      }
+      wdrag = null;
+    });
     $('ws-tabs').addEventListener('click', (e) => {
       const id = Number(e.target.dataset.ws); if (!id) return;
-      ws = id; try { localStorage.setItem('wp-ws', id); } catch {}
+      ws = id; lsSet('wp-ws', id);
       picked.clear(); flt = {};
       document.querySelectorAll('#ws-tabs button').forEach((b) => b.classList.toggle('on', Number(b.dataset.ws) === ws));
       buildHead(); render();
@@ -261,14 +283,14 @@
 
     $('filters').addEventListener('click', (e) => {
       const b = e.target.closest('[data-f]'); if (!b) return;
-      filter = b.dataset.f;
+      filter = b.dataset.f; lsSet('wp-view', { filter, sort });
       document.querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', c === b));
       render();
     });
     const head = $('head');
     head.addEventListener('click', (e) => {
       const k = e.target.dataset.sort; if (!k) return;
-      sort = { key: k, dir: sort.key === k ? -sort.dir : 1 }; render();
+      sort = { key: k, dir: sort.key === k ? -sort.dir : 1 }; lsSet('wp-view', { filter, sort }); render();
     });
     head.addEventListener('input', (e) => { const k = e.target.dataset.flt; if (k) { flt[k] = e.target.value; render(); } });
     $('clear').addEventListener('click', () => { flt = {}; buildHead(); render(); });
