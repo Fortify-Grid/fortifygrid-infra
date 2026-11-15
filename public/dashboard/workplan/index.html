@@ -2,46 +2,96 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>FortifyGrid Planner</title>
+  <!-- Installable as "Planner" (Add to Home Screen / Install app). The host is behind Cloudflare Access, so the manifest is fetched with the login cookie. -->
+  <link rel="manifest" href="/workplan/manifest.webmanifest" crossorigin="use-credentials">
   <link rel="icon" type="image/png" href="/assets/favicon.png">
-  <link href="https://fonts.googleapis.com/css2?family=Old+Standard+TT&display=swap" rel="stylesheet">
+  <link rel="apple-touch-icon" href="/assets/planner-apple-180.png">
+  <meta name="theme-color" content="#0B3D20">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Planner">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="stylesheet" href="/portal.css">
   <style>
-    .week { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; background: var(--card); border: 1px solid var(--line);
-      border-left: 4px solid var(--green); border-radius: 8px; padding: 14px 18px; margin: 12px 0; }
-    .week b { font-size: 22px; color: var(--green); }
-    .bar { position: sticky; top: 0; z-index: 5; background: var(--bg); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 0; }
-    .chips { display: flex; gap: 6px; overflow-x: auto; }
-    .chip { background: var(--card); color: var(--ink); border-color: var(--line); white-space: nowrap; border-radius: 16px; }
-    .chip.on { background: var(--green); color: #fff; border-color: var(--green); }
-    .bar .grow { flex: 1; }
+    /* Slack-like shell: dark green sidebar (tabs + workstreams as channels), clean white work area. */
+    :root { --side: #0B3D20; --side-ink: rgba(255,255,255,.72); --side-on: #2E6F40; --bg: #F7F7F5; --line: #E8E6E3; --hover: #F4F4F2; }
+    body { background: #fff; font-size: 15px; -webkit-font-smoothing: antialiased; }
+    .app { display: grid; grid-template-columns: 248px 1fr; min-height: 100vh; min-height: 100dvh; }
+    .side { background: var(--side); color: var(--side-ink); display: flex; flex-direction: column; gap: 2px; padding: calc(14px + env(safe-area-inset-top)) 10px 14px;
+      position: sticky; top: 0; height: 100vh; height: 100dvh; overflow-y: auto; }
+    .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 14px; color: #fff; font-weight: 700; font-size: 17px; text-decoration: none; }
+    .brand img { width: 30px; height: 30px; border-radius: 8px; }
+    .side-h { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: rgba(255,255,255,.5); padding: 16px 10px 6px; }
+    .side .tab, #ws-tabs button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: none; border: 0; border-radius: 6px;
+      color: var(--side-ink); padding: 6px 10px; font-size: 15px; min-height: 32px; }
+    .side .tab:hover, #ws-tabs button:hover { background: rgba(255,255,255,.08); color: #fff; }
+    .side .tab.on, #ws-tabs button.on { background: var(--side-on); color: #fff; font-weight: 600; }
+    #ws-tabs button::before { content: '#'; opacity: .6; font-weight: 400; }
+    #ws-tabs button[data-ws="-1"]::before { content: '✓'; }
+    #ws-tabs button[draggable=true] { cursor: pointer; }
+    #tabs, #ws-tabs { display: flex; flex-direction: column; gap: 2px; }
+    .side-foot { margin-top: auto; padding: 14px 10px 0; font-size: 13px; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid rgba(255,255,255,.1); }
+    .side-foot a { color: var(--side-ink); text-decoration: none; } .side-foot a:hover { color: #fff; }
+    .side-foot #who { color: rgba(255,255,255,.5); overflow-wrap: anywhere; }
+    .app > main { max-width: none; margin: 0; padding: 0 28px 40px; min-width: 0; }
+    .top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 18px 0 12px; border-bottom: 1px solid var(--line); }
+    .top h1 { font-family: inherit; font-size: 20px; font-weight: 700; margin: 0; }
+    .top .wk { font-size: 13px; color: var(--muted); background: var(--hover); border-radius: 12px; padding: 3px 10px; }
+    .top .grow, .bar .grow { flex: 1; }
+    button { border-radius: 6px; font-weight: 500; }
+    #add { padding: 7px 14px; }
+    .bar { position: sticky; top: 0; z-index: 5; background: #fff; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 0; }
+    .chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+    .chip { background: #fff; color: var(--ink); border: 1px solid var(--line); white-space: nowrap; border-radius: 16px; padding: 5px 12px; font-size: 13px; }
+    .chip:hover { background: var(--hover); }
+    .chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+    #sel { display: inline-flex; gap: 6px; align-items: center; background: #EAF2EC; border-radius: 8px; padding: 4px 4px 4px 10px; font-size: 14px; }
+    #sel[hidden] { display: none; } #sel button { padding: 4px 10px; font-size: 13px; }
+    .table-wrap { border: 0; border-radius: 0; }
+    table { font-size: 14px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 9px 10px; }
+    thead th { background: #fff; font-size: 11px; letter-spacing: .04em; }
+    tbody tr:hover > td { background: var(--hover); }
     th[data-sort] { cursor: pointer; user-select: none; white-space: nowrap; }
-    .subtabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-top: 8px; overflow-x: auto; }
-    .subtabs button { background: none; color: var(--ink); border: 0; border-bottom: 3px solid transparent; border-radius: 0; white-space: nowrap; }
-    .subtabs button.on { border-color: var(--green); color: var(--green); font-weight: 600; }
-    tr.grp td { background: var(--bg); padding: 10px 8px; font-size: 15px; cursor: grab; border-top: 2px solid var(--line); }
+    tr.grp td { background: var(--bg); padding: 10px 8px; font-size: 15px; cursor: grab; border-top: 1px solid var(--line); }
     tr.grp.over td { outline: 2px dashed var(--green); } tr.grp button { padding: 0 8px; min-height: 0; }
     th.hd[draggable=true] { cursor: grab; } th.over { outline: 2px dashed var(--green); }
-    tr.flt th { padding: 4px 6px; font-weight: normal; } tr.flt select, tr.flt input { width: 100%; min-width: 90px; font: inherit; padding: 3px 4px; border: 1px solid var(--line); border-radius: 4px; }
+    tr.flt th { padding: 4px 6px; font-weight: normal; text-transform: none; } tr.flt select, tr.flt input { width: 100%; min-width: 90px; font: inherit; font-size: 13px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
     th[data-sort].asc::after { content: ' ▲'; } th[data-sort].desc::after { content: ' ▼'; }
-    .tag { display: inline-block; font-size: 12px; background: #e9f1eb; color: var(--green); border-radius: 10px; padding: 2px 8px; }
+    .tag { display: inline-block; font-size: 12px; background: #EAF2EC; color: var(--green); border-radius: 10px; padding: 2px 8px; }
     .wait { color: var(--coral); font-size: 12px; }
     td.task { font-weight: 500; }
     td.nowrap { white-space: nowrap; }
     tr.st-complete td.task { text-decoration: line-through; color: var(--muted); }
-    tr.st-complete > td { background: rgba(46, 125, 50, .09); }   /* complete = light green */
-    tr.late > td { background: rgba(211, 63, 63, .09); }          /* overdue = light red */
+    tr.st-complete > td { background: rgba(46, 125, 50, .07); }   /* complete = light green */
+    tr.late > td { background: rgba(211, 63, 63, .07); }          /* overdue = light red */
     tr.late td.dates { color: var(--coral); font-weight: 600; }
-    select.status { min-width: 120px; }
-    .soon { background: var(--card); border: 1px dashed var(--line); border-radius: 8px; padding: 48px 20px; text-align: center; margin-top: 16px; }
-    dialog { border: 1px solid var(--line); border-radius: 8px; padding: 18px; width: min(520px, calc(100vw - 32px)); }
-    dialog form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    select.status { min-width: 120px; border-radius: 6px; }
+    .soon { background: var(--bg); border-radius: 10px; padding: 48px 20px; text-align: center; margin-top: 20px; }
+    .msg { border-radius: 8px; }
+    dialog { border: 0; border-radius: 12px; padding: 22px; width: min(540px, calc(100vw - 32px)); box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+    dialog::backdrop { background: rgba(0,0,0,.35); }
+    dialog form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     dialog .full { grid-column: 1 / -1; }
-    dialog textarea, dialog input, dialog select { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; width: 100%; }
-    td input[type=checkbox] { width: 20px; height: 20px; }
-    /* Phone: each task row becomes a stacked card, no sideways scrolling. */
+    dialog textarea, dialog input, dialog select { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; width: 100%; }
+    td input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--green); }
+    #wslist input, #ws-add input { font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; }
+    #access input[type=text] { width: 120px; } .wsbox { display: flex; flex-wrap: wrap; gap: 4px 12px; } .wsbox label { flex-direction: row; align-items: center; gap: 4px; color: var(--ink); font-size: 13px; }
+    h3 { font-size: 16px; }
+    /* Phone: sidebar becomes a top bar with sideways-scrolling tabs and workstreams; task rows become cards. */
     @media (max-width: 720px) {
+      .app { display: block; }
+      .side { position: sticky; top: 0; z-index: 10; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px; padding: calc(8px + env(safe-area-inset-top)) 12px 8px; overflow: visible; }
+      .brand { padding: 0 6px 0 0; font-size: 16px; } .brand img { width: 26px; height: 26px; }
+      .side-h { display: none; }
+      #tabs { flex-direction: row; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+      #ws-tabs { flex-direction: row; width: 100%; overflow-x: auto; scrollbar-width: none; order: 3; }
+      .side .tab, #ws-tabs button { width: auto; white-space: nowrap; padding: 4px 10px; min-height: 32px; font-size: 14px; }
+      .side-foot { display: none; }
+      .app > main { padding: 0 14px 40px; }
+      .bar { position: static; }
       .table-wrap.cards { border: 0; overflow: visible; }
       .cards table, .cards tbody, .cards tr, .cards td { display: block; width: 100%; }
       .cards thead, .cards thead tr.flt { display: flex; flex-wrap: wrap; gap: 6px; border: 0; padding: 0; background: none; margin-bottom: 10px; }
@@ -49,31 +99,32 @@
       .cards tr.grp { background: none; border: 0; padding: 0; margin: 14px 0 6px; } .cards tr.grp td { display: block; padding: 4px 0; border: 0; }
       .cards tr.flt th:first-child, .cards tr.hd th { display: none; }
       .cards tr.flt th { display: block; width: auto; flex: 1 1 140px; padding: 0; }
-      .cards tr { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
-      .cards tr.st-complete { background: rgba(46, 125, 50, .09); } .cards tr.late { background: rgba(211, 63, 63, .09); } .cards tr > td { background: none; }
+      .cards tr { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+      .cards tr.st-complete { background: rgba(46, 125, 50, .07); } .cards tr.late { background: rgba(211, 63, 63, .07); } .cards tr > td { background: none !important; }
       .cards tr.st-blocked { border-left: 4px solid var(--coral); } .cards tr.st-in_progress { border-left: 4px solid var(--green); }
       .cards td { border: 0; padding: 4px 0; display: flex; gap: 10px; justify-content: space-between; align-items: center; }
       .cards td[data-label]::before { content: attr(data-label); font-size: 12px; color: var(--muted); text-transform: uppercase; }
       .cards td.task { font-size: 16px; display: block; }
       .cards td.task::before { display: none; }
-      button, select, .bar input { min-height: 40px; }
+      main button, main select, .bar input { min-height: 40px; }
       dialog form { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <header>
-    <a href="/"><img src="/assets/fortify-logo.svg" alt="FortifyGrid"></a>
-    <nav><span id="who" class="muted"></span><a href="/">All apps</a><a href="/cdn-cgi/access/logout">Sign out</a></nav>
-  </header>
+ <div class="app">
+  <aside class="side">
+    <a class="brand" href="/workplan/"><img src="/assets/planner-192.png" alt="">Planner</a>
+    <nav id="tabs"></nav>
+    <div class="side-h" id="ws-h">Workstreams</div>
+    <div id="ws-tabs"></div>
+    <div class="side-foot"><span id="who"></span><a href="/">← All apps</a><a href="/cdn-cgi/access/logout">Sign out</a></div>
+  </aside>
   <main>
-    <h1>Planner</h1>
-    <div class="tabs" id="tabs"></div>
     <div id="msg" class="msg" hidden></div>
 
     <section data-tab="workplan" hidden>
-      <div class="subtabs" id="ws-tabs"></div>
-      <div class="week"><b id="wk"></b><span id="wk-dates" class="muted"></span></div>
+      <div class="top"><h1 id="ws-title">Tasks</h1><span class="wk"><span id="wk"></span> · <span id="wk-dates"></span></span><span class="grow"></span><button id="add">+ Add task</button></div>
       <div class="bar">
         <div class="chips" id="filters">
           <button class="chip on" data-f="all">All weeks</button>
@@ -83,9 +134,8 @@
           <button class="chip" data-f="overdue">Overdue</button>
         </div>
         <button id="clear" class="ghost" hidden>Clear filters</button>
-        <span id="sel" hidden><b id="sel-n"></b> selected <button id="bulk">Edit selected</button> <button id="unsel" class="ghost">Deselect</button></span>
         <span class="grow"></span>
-        <button id="add">+ Add task</button>
+        <span id="sel" hidden><b id="sel-n"></b> selected <button id="copy" title="Copy task names as a numbered list (paste in WhatsApp, email…)">Copy list</button><button id="bulk" class="ghost">Edit</button><button id="unsel" class="ghost">✕</button></span>
       </div>
       <div class="table-wrap cards"><table>
         <thead id="head"></thead>
@@ -94,21 +144,25 @@
       <p id="count" class="muted"></p>
     </section>
 
-    <section data-tab="pricing" hidden><div class="soon"><h2>System Pricing</h2><p class="muted">Coming soon. This tab is under construction.</p></div></section>
-    <section data-tab="accounts" hidden><div class="soon"><h2>Accounts</h2><p class="muted">Coming soon. This tab is under construction.</p></div></section>
+    <section data-tab="pricing" hidden><div class="top"><h1>System Pricing</h1></div><div class="soon"><p class="muted">Coming soon. This tab is under construction.</p></div></section>
+    <section data-tab="accounts" hidden><div class="top"><h1>Accounts</h1></div><div class="soon"><p class="muted">Coming soon. This tab is under construction.</p></div></section>
 
     <section data-tab="admin" hidden>
-      <p class="muted">Tick the tabs each person may open. Ticking any tab adds them to Planner; unticking all removes them.
-        Planner admins see every tab (set the role at <a href="/admin/">Manage users</a>).</p>
-      <h3>Workstreams</h3>
-      <p class="muted">The sub-tabs of Planner's Tasks tab. Rename, reorder or add (this is the default order; each person can also drag the sub-tabs into their own order, saved in their browser). A workstream that still has tasks can't be deleted: move them first (select tasks, Edit selected, Workstream).</p>
-      <div class="table-wrap"><table><tbody id="wslist"></tbody></table></div>
-      <form id="ws-add" class="bar"><input name="name" placeholder="New workstream" required maxlength="40"><button>Add</button></form>
-      <h3>Tab access</h3>
-      <div class="table-wrap"><table><thead><tr><th>User</th><th>Tasks</th><th>System Pricing</th><th>Accounts</th><th>Role</th></tr></thead>
+      <div class="top"><h1>Admin</h1></div>
+      <h3>People</h3>
+      <p class="muted"><b>Name</b>: what you type in a task's "Depends on" note (e.g. Sandeep). Those tasks show in that person's view.
+        <b>Shared workstreams</b>: they see, add and edit every task there (sharing also gives the Tasks tab).
+        Members see only these; Planner admins see everything (set the role at <a href="/admin/">Manage users</a>, where new people are added).</p>
+      <div class="table-wrap"><table><thead><tr><th>User</th><th>Name</th><th>Tasks</th><th>System Pricing</th><th>Accounts</th><th>Shared workstreams</th><th>Role</th></tr></thead>
         <tbody id="access"></tbody></table></div>
+      <h3>Workstreams</h3>
+      <p class="muted">Rename, reorder or add (this is the default order; each person can also drag them into their own order, saved in their browser). A workstream that still has tasks can't be deleted: move them first (select tasks, Edit, Workstream).</p>
+      <div class="table-wrap"><table><tbody id="wslist"></tbody></table></div>
+      <form id="ws-add" class="bar"><input name="name" type="text" placeholder="New workstream" required maxlength="40"><button>Add</button></form>
     </section>
   </main>
+ </div>
+
 
   <dialog id="bulk-dlg">
     <h3 id="bulk-title" style="margin-top:0"></h3>
@@ -133,13 +187,13 @@
       <label class="full">Task<textarea name="task" rows="2" required></textarea></label>
       <label>Status<select name="status"></select></label>
       <label>Depends on<select name="depends_on"></select></label>
-      <label class="full">Dependency note<input name="depends_note" type="text" placeholder="e.g. waiting on utility data"></label>
+      <label class="full">Dependency note / person<input name="depends_note" type="text" list="people" placeholder="e.g. Sandeep, or waiting on utility data"></label>
       <label>Start date<input name="start_date" type="date"></label>
       <label>Due date<input name="due_date" type="date"></label>
       <p class="row-actions full"><button type="submit">Save</button><button type="button" class="ghost" id="edit-cancel">Cancel</button>
         <button type="button" class="danger" id="edit-delete">Delete</button></p>
     </form>
-    <datalist id="projects"></datalist><datalist id="categories"></datalist>
+    <datalist id="projects"></datalist><datalist id="people"></datalist><datalist id="categories"></datalist>
   </dialog>
 
   <script type="module">
@@ -169,7 +223,7 @@
       const w1 = isoWeek(parse(a)), w2 = isoWeek(parse(b));
       return w1 === w2 ? `W${w1}` : `W${w1}–W${w2}`;
     };
-    $('wk').textContent = `Current: Week ${isoWeek(wk0)}`;
+    $('wk').textContent = `Week ${isoWeek(wk0)}`;
     $('wk-dates').textContent = `${fmt(ymd(wk0))} – ${fmt(ymd(addDays(wk0, 6)))}, ${addDays(wk0, 6).getFullYear()}`;
 
     /* tabs the user may open (from the server; the API enforces them too) */
@@ -178,6 +232,7 @@
       document.querySelectorAll('section[data-tab]').forEach((s) => { s.hidden = s.dataset.tab !== name; });
       document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('on', b.dataset.tab === name));
       history.replaceState(null, '', `#${name}`);
+      $('ws-h').hidden = $('ws-tabs').hidden = !me.tabs.includes('workplan');
       if (name === 'admin') { loadAccess(); drawWsAdmin(); }
     }
 
@@ -263,13 +318,15 @@
       document.querySelectorAll('th[data-sort]').forEach((th) => th.className = 'hd ' + (th.dataset.sort === sort.key ? (sort.dir > 0 ? 'asc' : 'desc') : ''));
     }
     /* workstreams = sub-tabs; edited in Admin */
-    const wsOpts = (none) => (none ? '<option value="">— no change —</option>' : '') + wss.map((w) => `<option value="${w.id}">${esc(w.name)}</option>`).join('');
+    const wsEdit = () => wss.filter((w) => w.edit !== false);
+    const wsOpts = (none) => (none ? '<option value="">— no change —</option>' : '') + wsEdit().map((w) => `<option value="${w.id}">${esc(w.name)}</option>`).join('');
     /* sub-tab order: admin order is the default; dragging saves your own order in this browser */
     const sortTabs = (list) => { const o = lsGet('wp-wsorder') || [], pos = (w) => (o.includes(w.id) ? o.indexOf(w.id) : 999 + w.sort); return [...list].sort((a, b) => pos(a) - pos(b)); };
     const wsSorted = () => sortTabs(wss);
-    const defWs = () => (ws > 0 ? ws : wsSorted()[0]?.id);                                    /* workstreams only */
+    const defWs = () => (wsEdit().some((w) => w.id === ws) ? ws : sortTabs(wsEdit())[0]?.id);  /* workstreams you may add to */
     const subTabs = () => sortTabs([...wss, { id: -1, name: 'To do', sort: 9999 }]); /* + the To do sub-tab */
-    const drawWsTabs = () => { $('ws-tabs').innerHTML = subTabs().map((w) => `<button class="${w.id === ws ? 'on' : ''}" data-ws="${w.id}" draggable="true" title="Drag to reorder">${esc(w.name)}</button>`).join(''); };
+    const drawTitle = () => { const w = wss.find((x) => x.id === ws); $('ws-title').textContent = ws === -1 ? 'To do' : w ? `# ${w.name}` : 'Tasks'; $('add').hidden = !wsEdit().length; };
+    const drawWsTabs = () => { drawTitle(); $('ws-tabs').innerHTML = subTabs().map((w) => `<button class="${w.id === ws ? 'on' : ''}" data-ws="${w.id}" draggable="true" title="Drag to reorder">${esc(w.name)}</button>`).join(''); };
     async function loadWs() {
       wss = await api('workplan/workstreams');
       if (ws !== -1 && !wss.some((w) => w.id === ws)) { const s = Number(lsGet('wp-ws')); ws = s === -1 || wss.some((w) => w.id === s) ? s : wsSorted()[0]?.id || 0; }
@@ -290,7 +347,8 @@
     $('ws-tabs').addEventListener('click', (e) => {
       const id = Number(e.target.dataset.ws); if (!id) return;
       ws = id; lsSet('wp-ws', id);
-      picked.clear(); flt = {};
+      picked.clear(); flt = {}; drawTitle();
+      if (!location.hash.endsWith('workplan')) showTab('workplan');
       document.querySelectorAll('#ws-tabs button').forEach((b) => b.classList.toggle('on', Number(b.dataset.ws) === ws));
       buildHead(); render();
     });
@@ -335,6 +393,14 @@
     head.addEventListener('change', (e) => { if (e.target.id !== 'all') return; shown.forEach((i) => (e.target.checked ? picked.add(i) : picked.delete(i))); render(); });
     $('rows').addEventListener('change', (e) => { const i = Number(e.target.dataset.sel); if (!i) return; e.target.checked ? picked.add(i) : picked.delete(i); render(); });
     $('unsel').addEventListener('click', () => { picked.clear(); render(); });
+    /* Copy selected task names as a numbered list (screen order), ready to paste into WhatsApp, email, etc. */
+    $('copy').addEventListener('click', async () => {
+      const ids = [...shown.filter((i) => picked.has(i)), ...[...picked].filter((i) => !shown.includes(i))].filter(byId);
+      const text = ids.map((i, n) => `${n + 1}. ${byId(i).task.replace(/\s+/g, ' ').trim()}`).join('\n');
+      try { await navigator.clipboard.writeText(text); }
+      catch { const ta = Object.assign(document.createElement('textarea'), { value: text }); document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+      showMsg(msg, `Copied ${ids.length} task${ids.length > 1 ? 's' : ''} as a numbered list. Paste anywhere.`, 'ok');
+    });
     const bf = $('bulk-form');
     bf.status.innerHTML = '<option value="">— no change —</option>' + Object.entries(STATUS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
     $('bulk').addEventListener('click', () => { fillOptions(defWs(), null); bf.reset(); $('bulk-title').textContent = `Edit ${picked.size} selected task${picked.size > 1 ? 's' : ''}`; $('bulk-dlg').showModal(); });
@@ -376,6 +442,7 @@
       $('projects').innerHTML = uniq('project'); $('categories').innerHTML = uniq('category');
       const deps = open.filter((x) => x.id !== t?.id), cur = t?.depends_on && byId(t.depends_on);
       if (cur && !deps.includes(cur)) deps.push(cur);   /* keep an existing dependency even if it is complete */
+      else if (t?.depends_on && !cur) deps.push({ id: t.depends_on, task: '(not shared with you)' });
       form.depends_on.innerHTML = '<option value="">None</option>' + deps.map((x) => `<option value="${x.id}">#${x.id} ${esc(x.task.slice(0, 60))}</option>`).join('');
     }
     form.workstream_id.addEventListener('change', () => { const d = form.depends_on.value; fillOptions(Number(form.workstream_id.value), editing); form.depends_on.value = [...form.depends_on.options].some((o) => o.value === d) ? d : ''; });
@@ -383,6 +450,8 @@
       editing = t;
       $('edit-title').textContent = t ? `Edit task #${t.id}` : 'Add task';
       fillOptions(t?.workstream_id || defWs(), t);
+      const own = wss.find((w) => w.id === t?.workstream_id);   /* a task named for you in a workstream not shared with you: it stays there */
+      form.workstream_id.innerHTML = own && own.edit === false ? `<option value="${own.id}">${esc(own.name)}</option>` : wsOpts(false);
       form.workstream_id.value = t?.workstream_id || defWs();
       for (const k of ['project', 'category', 'task', 'depends_note', 'start_date', 'due_date']) form[k].value = t?.[k] || '';
       form.status.value = t?.status || 'not_started';
@@ -443,31 +512,35 @@
         $('access').innerHTML = access.map((u, i) => {
           const admin = u.role === 'admin';
           return `<tr><td>${esc(u.name || u.email)}${u.name ? `<br><span class="muted">${esc(u.email)}</span>` : ''}</td>
+            <td><input type="text" data-u="${i}" data-name maxlength="40" value="${esc(u.pname)}" placeholder="e.g. ${esc((u.name || u.email).split(/[ @.]/)[0])}" aria-label="Name in tasks"></td>
             ${['workplan', 'pricing', 'accounts'].map((t) => `<td><input type="checkbox" data-u="${i}" data-t="${t}" aria-label="${TABS[t]}"
               ${admin || u.tabs.includes(t) ? 'checked' : ''}${admin ? ' disabled' : ''}></td>`).join('')}
+            <td>${admin ? '<span class="muted">All</span>' : `<div class="wsbox">${wss.map((w) => `<label><input type="checkbox" data-u="${i}" data-w="${w.id}"${u.ws.includes(w.id) ? ' checked' : ''}>${esc(w.name)}</label>`).join('')}</div>`}</td>
             <td class="muted">${esc(u.role || '—')}</td></tr>`;
         }).join('');
       } catch (e) { showMsg(msg, e.message, 'err'); }
     }
     $('access').addEventListener('change', async (e) => {
       const u = access[e.target.dataset.u]; if (!u) return;
-      const tabs = [...document.querySelectorAll(`#access input[data-u="${e.target.dataset.u}"]:checked`)].map((c) => c.dataset.t);
-      try { await api('workplan/access', { method: 'POST', body: { email: u.email, tabs } }); showMsg(msg, `Saved ${u.email}.`, 'ok'); await loadAccess(); }
-      catch (err) { showMsg(msg, err.message, 'err'); e.target.checked = !e.target.checked; }
+      const q = (sel) => [...document.querySelectorAll(`#access input[data-u="${e.target.dataset.u}"]${sel}`)];
+      const tabs = q('[data-t]:checked').map((c) => c.dataset.t), ws = q('[data-w]:checked').map((c) => Number(c.dataset.w)), name = q('[data-name]')[0].value;
+      try { await api('workplan/access', { method: 'POST', body: { email: u.email, tabs, ws, name } }); showMsg(msg, `Saved ${u.email}.`, 'ok'); await loadAccess(); }
+      catch (err) { showMsg(msg, err.message, 'err'); await loadAccess(); }
     });
 
     /* start */
     try {
       me = await api('workplan/me');
       $('who').textContent = me.email;
+      $('people').innerHTML = me.people.map((n) => `<option value="${esc(n)}">`).join('');
       const allowed = Object.keys(TABS).filter((t) => me.tabs.includes(t));
       $('tabs').innerHTML = allowed.map((t) => `<button class="tab" data-tab="${t}">${TABS[t]}</button>`).join('');
       $('tabs').addEventListener('click', (e) => { if (e.target.dataset.tab) showTab(e.target.dataset.tab); });
+      if (allowed.includes('workplan') || allowed.includes('admin')) await loadWs();
+      if (allowed.includes('workplan')) await loadTasks();
       if (!allowed.length) showMsg(msg, 'No tabs yet. Ask a Planner admin to give you access.');
       else showTab(allowed.includes(location.hash.slice(1)) ? location.hash.slice(1) : allowed[0]);
       addEventListener('hashchange', () => { if (allowed.includes(location.hash.slice(1))) showTab(location.hash.slice(1)); });
-      if (allowed.includes('workplan') || allowed.includes('admin')) await loadWs();
-      if (allowed.includes('workplan')) await loadTasks();
     } catch (e) {
       showMsg(msg, e.message, 'err');
     }

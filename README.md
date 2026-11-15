@@ -38,7 +38,7 @@ A push to `main` deploys: `.github/workflows/deploy.yml` applies `schema.sql`, t
 |---|---|
 | Public site | `public/index.html`, `site.css`, `script.js` |
 | Portal tiles | `public/dashboard/index.html`, `portal.js`, `portal.css` |
-| Planner (tasks, Admin tab permissions) | `public/dashboard/workplan/index.html`; API `workplanApi` in `worker.js` |
+| Planner (tasks, Admin tab: people names, shared workstreams, tab permissions) | `public/dashboard/workplan/index.html`, `manifest.webmanifest`; API `workplanApi` in `worker.js` (visibility: `sees`) |
 | Admin (users, apps, roles, tabs) | `public/dashboard/admin/index.html` |
 | Worker (routing, auth, `/api/`, app gates e.g. `/ide/`) | `worker.js`; tables `schema.sql` |
 | Cloudflare setup script | `infra/cf-setup.mjs` |

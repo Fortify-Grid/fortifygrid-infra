@@ -212,3 +212,15 @@ INSERT INTO wp_workstreams (name, sort)
   SELECT n, s FROM (SELECT 'Work' n, 1 s UNION ALL SELECT 'Family', 2 UNION ALL SELECT 'Others', 3)
   WHERE NOT EXISTS (SELECT 1 FROM wp_workstreams);
 UPDATE wp_tasks SET workstream_id = (SELECT id FROM wp_workstreams ORDER BY sort, id LIMIT 1) WHERE workstream_id IS NULL;
+
+-- Planner people. name = what the owner types in a task's "Depends on" note (e.g. Sandeep): tasks naming them show in
+-- their view. wp_shares = whole workstreams shared with a member (they see, add and edit its tasks). Planner admins see all.
+CREATE TABLE IF NOT EXISTS wp_names (
+  email TEXT PRIMARY KEY,
+  name  TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS wp_shares (
+  workstream_id INTEGER NOT NULL,
+  email         TEXT NOT NULL,
+  PRIMARY KEY (workstream_id, email)
+);

@@ -398,6 +398,7 @@ async function appTabs(env, user, appId) {
 const WP = 'workplan';
 const WP_TABS = ['workplan', 'pricing', 'accounts'];
 const WP_STATUS = ['not_started', 'in_progress', 'blocked', 'complete'];
+const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const wpDate = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : null);
 
 async function workplanApi(req, env, user, path, method) {
@@ -407,7 +408,25 @@ async function workplanApi(req, env, user, path, method) {
   const id = Number(rawId) || 0;
   const body = method === 'POST' ? await req.json().catch(() => ({})) : {};
 
-  if (resource === 'me' && method === 'GET') return json({ email: user.email, role: user.apps[WP] || null, tabs });
+  /* What this user sees: Planner admins (admin tab) everything; members the workstreams shared with them plus any task
+     whose "Depends on" note has their Planner name (set in the Admin tab) as a whole word, any case. */
+  const all = tabs.includes('admin');
+  const shared = all ? [] : (await env.DB.prepare('SELECT workstream_id id FROM wp_shares WHERE email = ?').bind(user.email).all()).results.map((r) => r.id);
+  const myName = all ? '' : (await env.DB.prepare('SELECT name FROM wp_names WHERE email = ?').bind(user.email).first('name')) || '';
+  const nameRe = myName && new RegExp(`(^|[^\\p{L}\\p{N}])${escRe(myName)}($|[^\\p{L}\\p{N}])`, 'iu');
+  const sees = (t) => all || shared.includes(t.workstream_id) || (nameRe && nameRe.test(t.depends_note || ''));
+  const canWs = (wsId) => all || shared.includes(wsId);
+  const seen = async (tid) => {
+    const t = await env.DB.prepare('SELECT * FROM wp_tasks WHERE id = ?').bind(tid).first();
+    if (!t || !sees(t)) throw new HttpError(404, 'No such task.');
+    return t;
+  };
+  const noWs = () => new HttpError(403, 'That workstream is not shared with you.');
+
+  if (resource === 'me' && method === 'GET') {
+    const people = (await env.DB.prepare('SELECT name FROM wp_names ORDER BY name').all()).results.map((r) => r.name);
+    return json({ email: user.email, role: user.apps[WP] || null, tabs, admin: all, name: myName, people });
+  }
 
   if (resource === 'tasks') {
     need('workplan');
@@ -420,9 +439,10 @@ async function workplanApi(req, env, user, path, method) {
         env.DB.prepare(`DELETE FROM wp_tasks WHERE ${old}`).bind(cut),
       ]);
       if (del.meta.changes) await audit(env, 'system', 'purge completed tasks', `${WP}: ${del.meta.changes} older than 30 days`);
-      return json((await env.DB.prepare('SELECT * FROM wp_tasks ORDER BY id').all()).results);
+      return json((await env.DB.prepare('SELECT * FROM wp_tasks ORDER BY id').all()).results.filter(sees));
     }
     if (method === 'DELETE' && id) {
+      await seen(id);
       await env.DB.batch([
         env.DB.prepare('UPDATE wp_tasks SET depends_on = NULL WHERE depends_on = ?').bind(id),
         env.DB.prepare('DELETE FROM wp_tasks WHERE id = ?').bind(id),
@@ -436,9 +456,11 @@ async function workplanApi(req, env, user, path, method) {
       const c = body.changes || {};
       if (!ids.length) throw new HttpError(400, 'Select at least one task.');
       const { results: rows } = await env.DB.prepare(`SELECT * FROM wp_tasks WHERE id IN (${ids.map(() => '?').join(',')})`).bind(...ids).all();
+      if (rows.length !== ids.length || !rows.every(sees)) throw new HttpError(404, 'Some tasks are not visible to you.');
       const text = (k, n) => (c[k] == null || String(c[k]).trim() === '' ? null : String(c[k]).trim().slice(0, n));
       const set = { project: text('project', 80), category: text('category', 80), status: WP_STATUS.includes(c.status) ? c.status : null,
         start_date: wpDate(c.start_date), due_date: wpDate(c.due_date), workstream_id: Number(c.workstream_id) || null };
+      if (set.workstream_id && !canWs(set.workstream_id)) throw noWs();
       if (set.workstream_id && !(await env.DB.prepare('SELECT 1 FROM wp_workstreams WHERE id = ?').bind(set.workstream_id).first())) throw new HttpError(400, 'No such workstream.');
       if (!Object.values(set).some((v) => v !== null)) throw new HttpError(400, 'Nothing to change.');
       const upd = rows.map((r) => ({ ...r, ...Object.fromEntries(Object.entries(set).filter(([, v]) => v !== null)) }));
@@ -459,6 +481,8 @@ async function workplanApi(req, env, user, path, method) {
       if (dep && dep === id) throw new HttpError(400, 'A task cannot depend on itself.');
       const wsId = Number(body.workstream_id) || (await env.DB.prepare('SELECT id FROM wp_workstreams ORDER BY sort, id LIMIT 1').first('id'));
       if (!(await env.DB.prepare('SELECT 1 FROM wp_workstreams WHERE id = ?').bind(wsId).first())) throw new HttpError(400, 'No such workstream.');
+      const old = id ? await seen(id) : null;
+      if ((!old || old.workstream_id !== wsId) && !canWs(wsId)) throw noWs();
       const vals = [String(body.project || '').trim().slice(0, 80), String(body.category || '').trim().slice(0, 80), task, dep, String(body.depends_note || '').trim().slice(0, 300),
         start, due, WP_STATUS.includes(body.status) ? body.status : 'not_started', now(), user.email, wsId];
       if (id) {
@@ -476,8 +500,11 @@ async function workplanApi(req, env, user, path, method) {
 
   if (resource === 'workstreams') {
     if (method === 'GET') {
-      if (!tabs.includes('admin')) need('workplan');
-      return json((await env.DB.prepare('SELECT id, name, sort FROM wp_workstreams ORDER BY sort, id').all()).results);
+      if (!all) need('workplan');
+      /* members: shared workstreams (edit) + ones holding a task that names them (view their tasks only) */
+      const { results: list } = await env.DB.prepare('SELECT id, name, sort FROM wp_workstreams ORDER BY sort, id').all();
+      const mine = all ? [] : (await env.DB.prepare('SELECT workstream_id, depends_note FROM wp_tasks').all()).results.filter(sees).map((t) => t.workstream_id);
+      return json(list.filter((w) => canWs(w.id) || mine.includes(w.id)).map((w) => ({ ...w, edit: canWs(w.id) })));
     }
     need('admin');
     if (method === 'POST' && rawId === 'order') {
@@ -501,7 +528,7 @@ async function workplanApi(req, env, user, path, method) {
       const n = await env.DB.prepare('SELECT COUNT(*) n FROM wp_tasks WHERE workstream_id = ?').bind(id).first('n');
       if (n) throw new HttpError(400, `Move or delete its ${n} task${n > 1 ? 's' : ''} first.`);
       if ((await env.DB.prepare('SELECT COUNT(*) n FROM wp_workstreams').first('n')) < 2) throw new HttpError(400, 'Keep at least one workstream.');
-      await env.DB.prepare('DELETE FROM wp_workstreams WHERE id = ?').bind(id).run();
+      await env.DB.batch([env.DB.prepare('DELETE FROM wp_workstreams WHERE id = ?').bind(id), env.DB.prepare('DELETE FROM wp_shares WHERE workstream_id = ?').bind(id)]);
       await audit(env, user.email, 'delete workstream', `${WP}#${id}`);
       return json({ ok: true });
     }
@@ -517,22 +544,36 @@ async function workplanApi(req, env, user, path, method) {
         if (u) u.role = 'admin'; else users.unshift({ email, name: '', role: 'admin' });
       }
       const { results: grants } = await env.DB.prepare('SELECT email, tab FROM user_tabs WHERE app_id = ?').bind(WP).all();
-      return json(users.map((u) => ({ ...u, tabs: grants.filter((g) => g.email === u.email).map((g) => g.tab) })));
+      const { results: names } = await env.DB.prepare('SELECT email, name FROM wp_names').all();
+      const { results: shares } = await env.DB.prepare('SELECT email, workstream_id FROM wp_shares').all();
+      return json(users.map((u) => ({ ...u, tabs: grants.filter((g) => g.email === u.email).map((g) => g.tab),
+        pname: names.find((n) => n.email === u.email)?.name || '', ws: shares.filter((g) => g.email === u.email).map((g) => g.workstream_id) })));
     }
     if (method === 'POST') {
       const email = normEmail(body.email);
       if (!(await env.DB.prepare('SELECT 1 FROM users WHERE email = ? AND active = 1').bind(email).first())) throw new HttpError(404, 'No such active user.');
       const role = (await env.DB.prepare('SELECT role FROM app_access WHERE email = ? AND app_id = ?').bind(email, WP).first())?.role;
-      if (role === 'admin' || bootstrapAdmins(env).includes(email)) throw new HttpError(400, 'Planner admins see every tab.');
-      const want = WP_TABS.filter((t) => Array.isArray(body.tabs) && body.tabs.includes(t));
+      const name = String(body.name ?? '').trim().slice(0, 40);
+      if (name && (await env.DB.prepare('SELECT 1 FROM wp_names WHERE lower(name) = lower(?) AND email != ?').bind(name, email).first())) throw new HttpError(400, `Someone else is already "${name}".`);
+      const setName = name ? env.DB.prepare('INSERT OR REPLACE INTO wp_names (email, name) VALUES (?, ?)').bind(email, name)
+        : env.DB.prepare('DELETE FROM wp_names WHERE email = ?').bind(email);
+      if (role === 'admin' || bootstrapAdmins(env).includes(email)) { /* admins see every tab and task; only the name applies */
+        await setName.run();
+        return json({ ok: true });
+      }
+      const ws = (Array.isArray(body.ws) ? body.ws : []).map(Number).filter(Boolean);
+      const want = WP_TABS.filter((t) => (Array.isArray(body.tabs) && body.tabs.includes(t)) || (t === 'workplan' && ws.length)); /* sharing gives Tasks */
       await env.DB.batch([
+        setName,
+        env.DB.prepare('DELETE FROM wp_shares WHERE email = ?').bind(email),
+        ...ws.map((w) => env.DB.prepare('INSERT OR IGNORE INTO wp_shares (workstream_id, email) SELECT id, ? FROM wp_workstreams WHERE id = ?').bind(email, w)),
         env.DB.prepare('DELETE FROM user_tabs WHERE app_id = ? AND email = ?').bind(WP, email),
         ...want.map((t) => env.DB.prepare('INSERT INTO user_tabs (app_id, email, tab) VALUES (?, ?, ?)').bind(WP, email, t)),
         want.length
           ? env.DB.prepare("INSERT OR IGNORE INTO app_access (email, app_id, role) VALUES (?, ?, 'member')").bind(email, WP)
           : env.DB.prepare("DELETE FROM app_access WHERE email = ? AND app_id = ? AND role = 'member'").bind(email, WP),
       ]);
-      await audit(env, user.email, 'set user tabs', email, JSON.stringify({ app: WP, tabs: want }));
+      await audit(env, user.email, 'set user tabs', email, JSON.stringify({ app: WP, tabs: want, name, ws }));
       return json({ ok: true });
     }
   }
