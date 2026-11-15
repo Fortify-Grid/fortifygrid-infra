@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FortifyGrid Workplan</title>
+  <title>FortifyGrid Planner</title>
   <link rel="icon" type="image/png" href="/assets/favicon.png">
   <link href="https://fonts.googleapis.com/css2?family=Old+Standard+TT&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/portal.css">
@@ -61,7 +61,7 @@
     <nav><span id="who" class="muted"></span><a href="/">All apps</a><a href="/cdn-cgi/access/logout">Sign out</a></nav>
   </header>
   <main>
-    <h1>Workplan</h1>
+    <h1>Planner</h1>
     <div class="tabs" id="tabs"></div>
     <div id="msg" class="msg" hidden></div>
 
@@ -92,14 +92,14 @@
     <section data-tab="accounts" hidden><div class="soon"><h2>Accounts</h2><p class="muted">Coming soon. This tab is under construction.</p></div></section>
 
     <section data-tab="admin" hidden>
-      <p class="muted">Tick the tabs each person may open. Ticking any tab adds them to Workplan; unticking all removes them.
-        Workplan admins see every tab (set the role at <a href="/admin/">Manage users</a>).</p>
+      <p class="muted">Tick the tabs each person may open. Ticking any tab adds them to Planner; unticking all removes them.
+        Planner admins see every tab (set the role at <a href="/admin/">Manage users</a>).</p>
       <h3>Workstreams</h3>
-      <p class="muted">The sub-tabs of Workplan. Rename, reorder or add. A workstream that still has tasks can't be deleted: move them first (select tasks, Edit selected, Workstream).</p>
+      <p class="muted">The sub-tabs of Planner's Tasks tab. Rename, reorder or add. A workstream that still has tasks can't be deleted: move them first (select tasks, Edit selected, Workstream).</p>
       <div class="table-wrap"><table><tbody id="wslist"></tbody></table></div>
       <form id="ws-add" class="bar"><input name="name" placeholder="New workstream" required maxlength="40"><button>Add</button></form>
       <h3>Tab access</h3>
-      <div class="table-wrap"><table><thead><tr><th>User</th><th>Workplan</th><th>System Pricing</th><th>Accounts</th><th>Role</th></tr></thead>
+      <div class="table-wrap"><table><thead><tr><th>User</th><th>Tasks</th><th>System Pricing</th><th>Accounts</th><th>Role</th></tr></thead>
         <tbody id="access"></tbody></table></div>
     </section>
   </main>
@@ -140,7 +140,7 @@
     import { api, esc, showMsg } from '/portal.js';
     const $ = (id) => document.getElementById(id);
     const msg = $('msg');
-    const TABS = { workplan: 'Workplan', pricing: 'System Pricing', accounts: 'Accounts', admin: 'Admin' };
+    const TABS = { workplan: 'Tasks', pricing: 'System Pricing', accounts: 'Accounts', admin: 'Admin' };
     const STATUS = { not_started: 'Not started', in_progress: 'In progress', blocked: 'Blocked', complete: 'Complete' };
 
     /* dates: local, as YYYY-MM-DD; ISO weeks start Monday */
@@ -395,7 +395,7 @@
       const allowed = Object.keys(TABS).filter((t) => me.tabs.includes(t));
       $('tabs').innerHTML = allowed.map((t) => `<button class="tab" data-tab="${t}">${TABS[t]}</button>`).join('');
       $('tabs').addEventListener('click', (e) => { if (e.target.dataset.tab) showTab(e.target.dataset.tab); });
-      if (!allowed.length) showMsg(msg, 'No tabs yet. Ask a Workplan admin to give you access.');
+      if (!allowed.length) showMsg(msg, 'No tabs yet. Ask a Planner admin to give you access.');
       else showTab(allowed.includes(location.hash.slice(1)) ? location.hash.slice(1) : allowed[0]);
       addEventListener('hashchange', () => { if (allowed.includes(location.hash.slice(1))) showTab(location.hash.slice(1)); });
       if (allowed.includes('workplan') || allowed.includes('admin')) await loadWs();

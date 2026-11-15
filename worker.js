@@ -402,7 +402,7 @@ const wpDate = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) :
 
 async function workplanApi(req, env, user, path, method) {
   const tabs = await appTabs(env, user, WP);
-  const need = (t) => { if (!tabs.includes(t)) throw new HttpError(403, 'You do not have this tab. Ask a Workplan admin.'); };
+  const need = (t) => { if (!tabs.includes(t)) throw new HttpError(403, 'You do not have this tab. Ask a Planner admin.'); };
   const [, resource, rawId] = path.split('/');
   const id = Number(rawId) || 0;
   const body = method === 'POST' ? await req.json().catch(() => ({})) : {};
@@ -523,7 +523,7 @@ async function workplanApi(req, env, user, path, method) {
       const email = normEmail(body.email);
       if (!(await env.DB.prepare('SELECT 1 FROM users WHERE email = ? AND active = 1').bind(email).first())) throw new HttpError(404, 'No such active user.');
       const role = (await env.DB.prepare('SELECT role FROM app_access WHERE email = ? AND app_id = ?').bind(email, WP).first())?.role;
-      if (role === 'admin' || bootstrapAdmins(env).includes(email)) throw new HttpError(400, 'Workplan admins see every tab.');
+      if (role === 'admin' || bootstrapAdmins(env).includes(email)) throw new HttpError(400, 'Planner admins see every tab.');
       const want = WP_TABS.filter((t) => Array.isArray(body.tabs) && body.tabs.includes(t));
       await env.DB.batch([
         env.DB.prepare('DELETE FROM user_tabs WHERE app_id = ? AND email = ?').bind(WP, email),
@@ -666,7 +666,7 @@ async function portalHost(req, env, url) {
   // /workplan/ needs a workplan role; the page itself is static (public/dashboard/workplan/), its API checks tabs.
   if (/^\/workplan(\/|$)/.test(url.pathname)) {
     try {
-      if (!(await currentUser(req, env)).apps[WP]) throw new HttpError(403, 'No Workplan access. Ask a Workplan admin.');
+      if (!(await currentUser(req, env)).apps[WP]) throw new HttpError(403, 'No Planner access. Ask a Planner admin.');
     } catch (e) {
       return json({ message: e.message }, e.status || 500);
     }

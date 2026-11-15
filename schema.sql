@@ -169,16 +169,19 @@ CREATE TABLE IF NOT EXISTS user_tabs (
 -- Workplan: app.fortifygrid.com/workplan/, served by this Worker. Tabs workplan, pricing, accounts (given per user in
 -- the app's Admin tab) and admin (role admin). Roles: member (only the tabs ticked for them), admin (every tab).
 INSERT OR IGNORE INTO apps (id, name, description, url, roles, sort, created_at, updated_at) VALUES
-  ('workplan', 'Workplan', 'Weekly tasks by project: dependencies, target dates, status. System Pricing and Accounts coming.',
+  ('workplan', 'Planner', 'Weekly tasks by project: dependencies, target dates, status. System Pricing and Accounts coming.',
    'https://app.fortifygrid.com/workplan/', '["member","admin"]', 5, datetime('now'), datetime('now'));
 INSERT OR IGNORE INTO app_tabs (app_id, tab, label, sort) VALUES
-  ('workplan', 'workplan', 'Workplan', 1),
+  ('workplan', 'workplan', 'Tasks', 1),
   ('workplan', 'pricing', 'System Pricing', 2),
   ('workplan', 'accounts', 'Accounts', 3),
   ('workplan', 'admin', 'Admin (tab permissions)', 4);
 INSERT INTO role_tabs (app_id, role, tab)
   SELECT 'workplan', 'admin', tab FROM app_tabs WHERE app_id = 'workplan'
   AND NOT EXISTS (SELECT 1 FROM role_tabs WHERE app_id = 'workplan');
+-- Renamed Workplan -> Planner (display only; app id and URL stay 'workplan'). Idempotent.
+UPDATE apps SET name = 'Planner' WHERE id = 'workplan' AND name = 'Workplan';
+UPDATE app_tabs SET label = 'Tasks' WHERE app_id = 'workplan' AND tab = 'workplan' AND label = 'Workplan';
 INSERT OR IGNORE INTO app_folders (app_id, folder, folder_sort) VALUES ('workplan', 'Operations', 3);
 
 -- Workplan tasks. Dates are YYYY-MM-DD; the week number (ISO) comes from the dates. depends_on = another task's id.
