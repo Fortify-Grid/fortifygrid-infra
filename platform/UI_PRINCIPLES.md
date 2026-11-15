@@ -8,7 +8,9 @@ your own tabs, tables, filters or folding cards: use the kit. Live reference: ht
 <script src="https://fortifygrid.com/platform/v1/fg-ui.js"></script>   <!-- window.FG; apps under app.fortifygrid.com may use /platform/v1/… -->
 <script>FG.configure({ app: '<app id>', user: '<signed-in email>' });</script>
 ```
-Planner's look is the standard (it came first). Class names all start with `fg-`, so the kit never clashes with an app's CSS.
+Planner's layout is the standard (it came first). Colors: **Mint Green `#98FF98` is the main colour** (sidebar, main buttons);
+Ice Blue `#BAE6FD` (the open section) and Warm Apricot `#FDBA74` (chosen chips, hover, drag marks) only where more is needed; dark text on all three. `--fg-green` is now
+the dark accent (`#0C4A6E`) for links, ghost buttons and ticks; it kept its name so apps that use it keep working. Class names all start with `fg-`, so the kit never clashes with an app's CSS.
 
 ## 1. Shell: same frame everywhere, so moving between apps feels like one product
 ```
@@ -29,6 +31,8 @@ Planner's look is the standard (it came first). Class names all start with `fg-`
   entry **⌂ Home: all apps** (the portal tiles, which list only what you may open), then every app (`FG.APPS`, one list).
 - **Sections** (the app's tabs) under Apps; **channels** (workstreams, projects, customers…) under a small heading.
 - Foot: who you are, ← All apps, Sign out. Nothing else in the sidebar.
+- **«** (top right of the sidebar) hides it to a slim ☰ rail so the work area gets the room; ☰ shows it again. One
+  setting for every app in this browser. Apps with maps or charts relayout on the `resize` event the kit sends.
 - Phone (≤ 720 px): the sidebar becomes a top bar with sideways-scrolling sections and channels; foot hidden.
 
 ## 2. Sections and channels
