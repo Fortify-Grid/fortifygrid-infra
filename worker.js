@@ -19,6 +19,9 @@ const normEmail = (e) => String(e || '').trim().toLowerCase();
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const APP_ID_RE = /^[a-z][a-z0-9-]{1,30}$/;
 const SETTING_KEY_RE = /^[a-z][a-z0-9_]{1,40}$/;
+// Theme colours for every app on the kit (admin → Settings → Theme colours). Setting key → kit token. Hex only.
+const THEME = { theme_main: '--fg-mint', theme_accent1: '--fg-ice', theme_accent2: '--fg-apricot' };
+const HEX_RE = /^#[0-9a-f]{6}$/i;
 const ROLE_RE = /^[a-z][a-z0-9_-]{1,20}$/;
 const APP_HOST = 'app.fortifygrid.com';
 const PORTAL_URL = `https://${APP_HOST}/`;
@@ -367,6 +370,7 @@ async function saveSetting(env, actor, body) {
   const key = String(body.key || '').trim().toLowerCase();
   if (!SETTING_KEY_RE.test(key)) throw new HttpError(400, 'Setting key: lowercase letters, digits, underscores.');
   const value = String(body.value ?? '').slice(0, 4000);
+  if (key.startsWith('theme_') && !(THEME[key] && HEX_RE.test(value))) throw new HttpError(400, `Theme colours: ${Object.keys(THEME).join(', ')}, as #rrggbb.`);
   await env.DB.prepare(`INSERT INTO settings (key, value, updated_at, updated_by) VALUES (?, ?, ?, ?)
       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at, updated_by = excluded.updated_by`)
     .bind(key, value, now(), actor.email).run();
@@ -673,7 +677,7 @@ async function workplanApi(req, env, user, path, method) {
  * @throws 400 bad id, URL or roles · 404 no such app
  */
 /**
- * Site settings (e.g. dashboard_notice).
+ * Site settings (e.g. dashboard_notice). theme_main / theme_accent1 / theme_accent2 = #rrggbb colours for every app.
  * @module portal
  * @route POST /api/admin/settings
  * @route DELETE /api/admin/settings/:key
@@ -681,6 +685,7 @@ async function workplanApi(req, env, user, path, method) {
  * @storageTier tier1_d1
  * @param {object} body {key, value ≤4000 chars}
  * @returns {{ok: true}}
+ * @throws 400 bad key, or a theme_ key that is not a known colour as #rrggbb
  */
 /**
  * Rewrite every Cloudflare Access group from the user list.
@@ -811,6 +816,25 @@ export class Directory extends WorkerEntrypoint {
 }
 
 /**
+ * Theme colours chosen in admin → Settings, as CSS the kit loads after fg-ui.css (it only sets --fg-mint, --fg-ice,
+ * --fg-apricot; unset keys keep the kit defaults). Public like the kit; cached 60 s, so a change reaches every app
+ * within a minute.
+ * @module platform
+ * @route GET /platform/v1/theme.css
+ * @permission public
+ * @storageTier tier1_d1
+ * @returns {Response} text/css, `access-control-allow-origin: *`
+ */
+async function themeCss(env) {
+  const { results } = await env.DB.prepare(`SELECT key, value FROM settings WHERE key IN (${Object.keys(THEME).map(() => '?').join(', ')})`)
+    .bind(...Object.keys(THEME)).all();
+  const vars = results.filter((r) => HEX_RE.test(r.value)).map((r) => `${THEME[r.key]}: ${r.value};`).join(' ');
+  return new Response(`/* FortifyGrid theme from admin → Settings (empty = kit defaults). */\n${vars ? `:root { ${vars} }\n` : ''}`, {
+    headers: { 'content-type': 'text/css; charset=utf-8', 'access-control-allow-origin': '*', 'cache-control': 'public, max-age=60' },
+  });
+}
+
+/**
  * Shared UI kit for every app (public/platform/v<n>/: fg-ui.css, fg-ui.js, demo.html). Public on both hosts, so
  * subdomain apps load it without a portal sign-in; CORS open (static, no data). Rules: platform/UI_PRINCIPLES.md.
  * @module platform
@@ -820,6 +844,7 @@ export class Directory extends WorkerEntrypoint {
  * @returns {Response} the file, `access-control-allow-origin: *`, revalidated on every load
  */
 async function platformFile(req, env) {
+  if (new URL(req.url).pathname === '/platform/v1/theme.css') return themeCss(env);
   const res = await env.ASSETS.fetch(req);
   const out = new Response(res.body, res);
   out.headers.set('access-control-allow-origin', '*');

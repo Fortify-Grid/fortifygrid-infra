@@ -9,7 +9,9 @@ your own tabs, tables, filters or folding cards: use the kit. Live reference: ht
 <script>FG.configure({ app: '<app id>', user: '<signed-in email>' });</script>
 ```
 Planner's layout is the standard (it came first). Colors: **Mint Green `#98FF98` is the main colour** (sidebar, main buttons);
-Ice Blue `#BAE6FD` (the open section) and Warm Apricot `#FDBA74` (chosen chips, hover, drag marks) only where more is needed; dark text on all three. `--fg-green` is now
+Ice Blue `#BAE6FD` (the open section) and Warm Apricot `#FDBA74` (chosen chips, hover, drag marks) only where more is needed; dark text on all three.
+**Admins change these three colours in admin → Settings → Theme colours**: the portal serves them as
+`/platform/v1/theme.css`, which `fg-ui.js` loads after `fg-ui.css`, so every app follows within a minute (no deploy). `--fg-green` is now
 the dark accent (`#0C4A6E`) for links, ghost buttons and ticks; it kept its name so apps that use it keep working. Class names all start with `fg-`, so the kit never clashes with an app's CSS.
 
 ## 1. Shell: same frame everywhere, so moving between apps feels like one product

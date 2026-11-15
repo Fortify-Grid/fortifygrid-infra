@@ -3,7 +3,13 @@
    v1 changes stay backward compatible; a breaking change becomes v2. Demo: /platform/v1/demo.html */
 (() => {
   const FG = (window.FG = window.FG || {});
-  FG.version = '1.1.0';
+  FG.version = '1.2.0';
+  // Theme colours set in admin → Settings: theme.css (next to this file) overrides the colour tokens of fg-ui.css.
+  const kitSrc = document.currentScript?.src;
+  if (kitSrc && !document.querySelector('link[data-fg-theme]')) {
+    const l = Object.assign(document.createElement('link'), { rel: 'stylesheet', href: new URL('theme.css', kitSrc).href });
+    l.dataset.fgTheme = ''; document.head.append(l);
+  }
 
   // Every app, for the Apps menu. Home lists only the apps you can open; this list is the same for everyone.
   FG.HOME = { name: '⌂ Home: all apps', url: 'https://app.fortifygrid.com/' };

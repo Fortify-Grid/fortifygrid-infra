@@ -66,7 +66,8 @@ INSERT OR IGNORE INTO apps (id, name, description, url, roles, created_at, updat
   ('heatmap', 'Grid Heatmap', 'LMP price heatmap with generators and GIS layers, live from the FortifyGrid database.',
    'https://heatmap.fortifygrid.com/', '["viewer","admin"]', datetime('now'), datetime('now'));
 
--- Site config (edited at /dashboard/admin → Settings). Known keys: dashboard_notice (banner on the dashboard).
+-- Site config (edited at /dashboard/admin → Settings). Known keys: dashboard_notice (banner on the dashboard);
+-- theme_main, theme_accent1, theme_accent2 (#rrggbb colours for every app on the kit, served as /platform/v1/theme.css).
 -- @table settings
 -- @module portal
 -- @storageTier tier1_d1

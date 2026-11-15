@@ -18,7 +18,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/admin/apps",
-      "source": "worker.js:664"
+      "source": "worker.js:668"
     },
     {
       "module": "access",
@@ -37,7 +37,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/admin/apps/:id/tabs",
-      "source": "worker.js:664"
+      "source": "worker.js:668"
     },
     {
       "module": "access",
@@ -52,7 +52,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/api/admin/audit",
-      "source": "worker.js:692"
+      "source": "worker.js:697"
     },
     {
       "module": "access",
@@ -69,7 +69,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/api/admin/overview",
-      "source": "worker.js:643"
+      "source": "worker.js:647"
     },
     {
       "module": "access",
@@ -84,7 +84,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/admin/sync",
-      "source": "worker.js:685"
+      "source": "worker.js:690"
     },
     {
       "module": "access",
@@ -103,7 +103,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/admin/users",
-      "source": "worker.js:651"
+      "source": "worker.js:655"
     },
     {
       "module": "access",
@@ -122,7 +122,7 @@
       "kind": "http",
       "method": "DELETE",
       "path": "/api/admin/users/:email",
-      "source": "worker.js:651"
+      "source": "worker.js:655"
     },
     {
       "module": "access",
@@ -141,7 +141,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/admin/users/:email/invite",
-      "source": "worker.js:651"
+      "source": "worker.js:655"
     },
     {
       "module": "directory",
@@ -156,7 +156,7 @@
       "kind": "rpc",
       "method": "RPC",
       "path": "Directory.access(email, appId)",
-      "source": "worker.js:767"
+      "source": "worker.js:772"
     },
     {
       "module": "directory",
@@ -171,7 +171,7 @@
       "kind": "rpc",
       "method": "RPC",
       "path": "Directory.config(appId)",
-      "source": "worker.js:767"
+      "source": "worker.js:772"
     },
     {
       "module": "directory",
@@ -186,7 +186,7 @@
       "kind": "rpc",
       "method": "RPC",
       "path": "Directory.tabs(email, appId)",
-      "source": "worker.js:767"
+      "source": "worker.js:772"
     },
     {
       "module": "directory",
@@ -201,7 +201,7 @@
       "kind": "rpc",
       "method": "RPC",
       "path": "Directory.users(appId)",
-      "source": "worker.js:767"
+      "source": "worker.js:772"
     },
     {
       "module": "planner",
@@ -220,7 +220,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/api/workplan/access",
-      "source": "worker.js:442"
+      "source": "worker.js:446"
     },
     {
       "module": "planner",
@@ -239,7 +239,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/workplan/access",
-      "source": "worker.js:442"
+      "source": "worker.js:446"
     },
     {
       "module": "planner",
@@ -256,7 +256,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/api/workplan/me",
-      "source": "worker.js:404"
+      "source": "worker.js:408"
     },
     {
       "module": "planner",
@@ -277,7 +277,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/api/workplan/tasks",
-      "source": "worker.js:412"
+      "source": "worker.js:416"
     },
     {
       "module": "planner",
@@ -298,7 +298,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/workplan/tasks",
-      "source": "worker.js:412"
+      "source": "worker.js:416"
     },
     {
       "module": "planner",
@@ -319,7 +319,7 @@
       "kind": "http",
       "method": "DELETE",
       "path": "/api/workplan/tasks/:id",
-      "source": "worker.js:412"
+      "source": "worker.js:416"
     },
     {
       "module": "planner",
@@ -340,7 +340,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/workplan/tasks/:id",
-      "source": "worker.js:412"
+      "source": "worker.js:416"
     },
     {
       "module": "planner",
@@ -361,7 +361,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/workplan/tasks/bulk",
-      "source": "worker.js:412"
+      "source": "worker.js:416"
     },
     {
       "module": "planner",
@@ -380,7 +380,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/api/workplan/workstreams",
-      "source": "worker.js:428"
+      "source": "worker.js:432"
     },
     {
       "module": "planner",
@@ -399,7 +399,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/workplan/workstreams",
-      "source": "worker.js:428"
+      "source": "worker.js:432"
     },
     {
       "module": "planner",
@@ -418,7 +418,7 @@
       "kind": "http",
       "method": "DELETE",
       "path": "/api/workplan/workstreams/:id",
-      "source": "worker.js:428"
+      "source": "worker.js:432"
     },
     {
       "module": "planner",
@@ -437,7 +437,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/workplan/workstreams/:id",
-      "source": "worker.js:428"
+      "source": "worker.js:432"
     },
     {
       "module": "planner",
@@ -456,7 +456,7 @@
       "kind": "http",
       "method": "POST",
       "path": "/api/workplan/workstreams/order",
-      "source": "worker.js:428"
+      "source": "worker.js:432"
     },
     {
       "module": "platform",
@@ -471,7 +471,22 @@
       "kind": "http",
       "method": "GET",
       "path": "/platform/:version/:file",
-      "source": "worker.js:813"
+      "source": "worker.js:837"
+    },
+    {
+      "module": "platform",
+      "permission": "public",
+      "storageTier": "tier1_d1",
+      "description": "Theme colours chosen in admin → Settings, as CSS the kit loads after fg-ui.css (it only sets --fg-mint, --fg-ice, --fg-apricot; unset keys keep the kit defaults). Public like the kit; cached 60 s, so a change reaches every app within a minute.",
+      "params": [],
+      "returns": "{Response} text/css, `access-control-allow-origin: *`",
+      "throws": [],
+      "examples": [],
+      "handler": "themeCss",
+      "kind": "http",
+      "method": "GET",
+      "path": "/platform/v1/theme.css",
+      "source": "worker.js:818"
     },
     {
       "module": "portal",
@@ -488,41 +503,45 @@
       "kind": "http",
       "method": "GET",
       "path": "/*",
-      "source": "worker.js:830"
+      "source": "worker.js:855"
     },
     {
       "module": "portal",
       "permission": "portal admin",
       "storageTier": "tier1_d1",
-      "description": "Site settings (e.g. dashboard_notice).",
+      "description": "Site settings (e.g. dashboard_notice). theme_main / theme_accent1 / theme_accent2 = #rrggbb colours for every app.",
       "params": [
         "{object} body {key, value ≤4000 chars}"
       ],
       "returns": "{{ok: true}}",
-      "throws": [],
+      "throws": [
+        "400 bad key, or a theme_ key that is not a known colour as #rrggbb"
+      ],
       "examples": [],
       "handler": "api",
       "kind": "http",
       "method": "POST",
       "path": "/api/admin/settings",
-      "source": "worker.js:675"
+      "source": "worker.js:679"
     },
     {
       "module": "portal",
       "permission": "portal admin",
       "storageTier": "tier1_d1",
-      "description": "Site settings (e.g. dashboard_notice).",
+      "description": "Site settings (e.g. dashboard_notice). theme_main / theme_accent1 / theme_accent2 = #rrggbb colours for every app.",
       "params": [
         "{object} body {key, value ≤4000 chars}"
       ],
       "returns": "{{ok: true}}",
-      "throws": [],
+      "throws": [
+        "400 bad key, or a theme_ key that is not a known colour as #rrggbb"
+      ],
       "examples": [],
       "handler": "api",
       "kind": "http",
       "method": "DELETE",
       "path": "/api/admin/settings/:key",
-      "source": "worker.js:675"
+      "source": "worker.js:679"
     },
     {
       "module": "portal",
@@ -539,7 +558,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/api/me",
-      "source": "worker.js:634"
+      "source": "worker.js:638"
     },
     {
       "module": "portal",
@@ -556,7 +575,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/ide/*",
-      "source": "worker.js:830"
+      "source": "worker.js:855"
     },
     {
       "module": "portal",
@@ -573,7 +592,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/workplan/*",
-      "source": "worker.js:830"
+      "source": "worker.js:855"
     },
     {
       "module": "site",
@@ -588,7 +607,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/",
-      "source": "worker.js:895"
+      "source": "worker.js:920"
     }
   ]
 }
