@@ -12,7 +12,7 @@
   },
   "counts": {
     "modules": 6,
-    "routes": 30,
+    "routes": 31,
     "rpc": 4,
     "tables": 13,
     "foreignKeys": 17
@@ -24,7 +24,7 @@
       "ui": [
         "public/dashboard/admin/index.html"
       ],
-      "routes": 8,
+      "routes": 9,
       "tables": [
         "app_access",
         "app_tabs",

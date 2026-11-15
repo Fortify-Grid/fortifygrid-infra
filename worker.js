@@ -13,6 +13,10 @@
 // App Workers call `Directory` over a service binding: config(appId) for JWT checks, access(email, appId) for the role.
 
 import { WorkerEntrypoint } from 'cloudflare:workers';
+// Generated API / schema docs (npm run docs), shown on admin → Documentation.
+import docsIndex from './docs/portal/index.json';
+import docsApi from './docs/portal/api-reference.json';
+import docsSchema from './docs/portal/relationships.json';
 
 const now = () => new Date().toISOString();
 const normEmail = (e) => String(e || '').trim().toLowerCase();
@@ -701,6 +705,14 @@ async function workplanApi(req, env, user, path, method) {
  * @storageTier tier1_d1
  * @returns {object[]} [{id, at, actor, action, target, detail}]
  */
+/**
+ * This portal's generated API and schema docs (admin → Documentation). Each app serves its own at /api/docs.
+ * @module access
+ * @route GET /api/admin/docs portal admin
+ * @storageTier static_assets
+ * @returns {{index, api, schema}} the files in docs/portal (index.json, api-reference.json, relationships.json)
+ * @throws 403 Admins only
+ */
 async function api(req, env, url) {
   const user = await currentUser(req, env);
   const path = url.pathname.replace(/^\/(dashboard\/)?api\//, '').replace(/\/+$/, '');
@@ -760,6 +772,7 @@ async function api(req, env, url) {
     await audit(env, user.email, 'sync', '', sync.note);
     return json(sync);
   }
+  if (resource === 'docs' && method === 'GET' && !id) return json({ index: docsIndex, api: docsApi, schema: docsSchema });
   if (resource === 'audit' && method === 'GET') {
     const { results } = await env.DB.prepare('SELECT * FROM audit ORDER BY id DESC LIMIT 300').all();
     return json(results);
