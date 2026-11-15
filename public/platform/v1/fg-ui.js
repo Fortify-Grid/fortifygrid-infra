@@ -146,7 +146,8 @@
     api.reset = () => { api.values = defaults(); commit(true); };
     api.changed = () => o.defs.some((d) => api.values[d.key] !== (d.default ?? blank(d)));
     box.addEventListener('click', (e) => { const b = e.target.closest('button[data-k]'); if (!b) return; const d = o.defs.find((x) => x.key === b.dataset.k); api.set(d.key, d.type === 'toggle' ? !api.values[d.key] : b.dataset.v); });
-    box.addEventListener('input', (e) => { if (e.target.dataset.k) api.set(e.target.dataset.k, e.target.value); });
+    box.addEventListener('input', (e) => { if (e.target.dataset.k && e.target.tagName === 'INPUT') api.set(e.target.dataset.k, e.target.value); });
+    box.addEventListener('change', (e) => { if (e.target.dataset.k && e.target.tagName === 'SELECT') api.set(e.target.dataset.k, e.target.value); });
     draw();
     return api;
   };
