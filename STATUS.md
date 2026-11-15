@@ -14,7 +14,6 @@ Updated 2026-11-15.
 | IDE at **app.fortifygrid.com/ide/**: the portal checks the role and forwards to the `fortifygrid-ide` Worker (no public route) | 2026-10-25 |
 
 ## Open
-- **Before pushing completed_at change:** remote D1 `ALTER TABLE wp_tasks ADD COLUMN completed_at TEXT; UPDATE wp_tasks SET completed_at = strftime("%Y-%m-%dT%H:%M:%fZ","now") WHERE status = "complete";`
 - Workplan: build System Pricing and Accounts tabs (data from RDS via Hyperdrive when needed).
 - Contact form doesn't send.
 - Secrets in git history not rotated (owner's choice).
