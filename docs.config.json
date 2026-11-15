@@ -1,0 +1,29 @@
+{
+  "app": "portal",
+  "name": "FortifyGrid portal (website, sign-in, admin, Planner)",
+  "repo": "Fortify-Grid/fortifygrid-infra",
+  "out": "docs/portal",
+  "api": ["worker.js"],
+  "schema": ["schema.sql"],
+  "modules": {
+    "site": "Public website fortifygrid.com",
+    "portal": "Signed-in dashboard: app tiles, folders, notice, page gates",
+    "access": "Login and permissions for every app: users, roles, apps, tabs, Access groups, audit",
+    "directory": "Directory RPC: app Workers ask the portal for login config, role, tabs, users",
+    "planner": "Planner (workplan): tasks, workstreams, people, sharing",
+    "platform": "Shared UI kit and docs tooling used by every app"
+  },
+  "ui": {
+    "site": ["public/index.html", "public/site.css", "public/script.js"],
+    "portal": ["public/dashboard/index.html", "public/dashboard/portal.js", "public/dashboard/portal.css"],
+    "access": ["public/dashboard/admin/index.html"],
+    "planner": ["public/dashboard/workplan/index.html"],
+    "platform": ["public/platform/v1/fg-ui.css", "public/platform/v1/fg-ui.js", "public/platform/v1/demo.html"]
+  },
+  "storage": {
+    "tier1_d1": "D1 fortifygrid-portal",
+    "tier4_heavy": "AWS RDS fortifygrid (apps read it via Hyperdrive; not used by the portal)",
+    "static_assets": "public/ served by this Worker",
+    "external": "Cloudflare Access API (groups, apps), Resend (invite email)"
+  }
+}

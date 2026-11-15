@@ -1,0 +1,889 @@
+{
+  "app": "portal",
+  "tables": {
+    "app_access": {
+      "name": "app_access",
+      "module": "access",
+      "storageTier": "tier1_d1",
+      "description": "Which apps each user may open, and their role there (one of the app's roles in apps.roles).",
+      "columns": [
+        {
+          "name": "email",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "app_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "role",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        }
+      ],
+      "primaryKey": [
+        "email",
+        "app_id"
+      ],
+      "indexes": [],
+      "source": "schema.sql:24"
+    },
+    "app_folders": {
+      "name": "app_folders",
+      "module": "portal",
+      "storageTier": "tier1_d1",
+      "description": "Dashboard folder (section) each app's tile sits in.",
+      "columns": [
+        {
+          "name": "app_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "folder",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "folder_sort",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": "100",
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        }
+      ],
+      "primaryKey": [
+        "app_id"
+      ],
+      "indexes": [],
+      "source": "schema.sql:174"
+    },
+    "app_tabs": {
+      "name": "app_tabs",
+      "module": "access",
+      "storageTier": "tier1_d1",
+      "description": "Tabs each app has; its UI marks them data-tab=\"<tab>\".",
+      "columns": [
+        {
+          "name": "app_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "tab",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "label",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "sort",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": "0",
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        }
+      ],
+      "primaryKey": [
+        "app_id",
+        "tab"
+      ],
+      "indexes": [],
+      "source": "schema.sql:88"
+    },
+    "apps": {
+      "name": "apps",
+      "module": "access",
+      "storageTier": "tier1_d1",
+      "description": "Registered apps: URL, roles (JSON, lowest first), Cloudflare Access group and audience.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "''",
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "url",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "roles",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'[\"viewer\",\"admin\"]'",
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "access_group_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "''",
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "access_aud",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "''",
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "enabled",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": "1",
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "sort",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": "0",
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "indexes": [],
+      "source": "schema.sql:52"
+    },
+    "audit": {
+      "name": "audit",
+      "module": "access",
+      "storageTier": "tier1_d1",
+      "description": "Who changed what in admin (users, apps, tabs, settings, invites, sync). Append-only; newest 300 shown.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "actor",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "action",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "target",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "''",
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "detail",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "''",
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "indexes": [
+        "audit_at (at)"
+      ],
+      "source": "schema.sql:36"
+    },
+    "role_tabs": {
+      "name": "role_tabs",
+      "module": "access",
+      "storageTier": "tier1_d1",
+      "description": "Which role may see which tab of an app.",
+      "columns": [
+        {
+          "name": "app_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "role",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "tab",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        }
+      ],
+      "primaryKey": [
+        "app_id",
+        "role",
+        "tab"
+      ],
+      "indexes": [],
+      "source": "schema.sql:101"
+    },
+    "settings": {
+      "name": "settings",
+      "module": "portal",
+      "storageTier": "tier1_d1",
+      "description": "Site config edited in admin → Settings (e.g. dashboard_notice banner).",
+      "columns": [
+        {
+          "name": "key",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "value",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "updated_by",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        }
+      ],
+      "primaryKey": [
+        "key"
+      ],
+      "indexes": [],
+      "source": "schema.sql:75"
+    },
+    "user_tabs": {
+      "name": "user_tabs",
+      "module": "access",
+      "storageTier": "tier1_d1",
+      "description": "Extra tabs for one user on top of their role's tabs (Planner Admin tab edits these).",
+      "columns": [
+        {
+          "name": "app_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "email",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "tab",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        }
+      ],
+      "primaryKey": [
+        "app_id",
+        "email",
+        "tab"
+      ],
+      "indexes": [],
+      "source": "schema.sql:210"
+    },
+    "users": {
+      "name": "users",
+      "module": "access",
+      "storageTier": "tier1_d1",
+      "description": "Every person who can sign in to the portal; is_admin = portal admin. Roles per app are in app_access.",
+      "columns": [
+        {
+          "name": "email",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "''",
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "is_admin",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": "0",
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "active",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": "1",
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "last_seen_at",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        }
+      ],
+      "primaryKey": [
+        "email"
+      ],
+      "indexes": [],
+      "source": "schema.sql:7"
+    },
+    "wp_names": {
+      "name": "wp_names",
+      "module": "planner",
+      "storageTier": "tier1_d1",
+      "description": "Planner name per person; tasks whose Depends-on note names them show in their view.",
+      "columns": [
+        {
+          "name": "email",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        }
+      ],
+      "primaryKey": [
+        "email"
+      ],
+      "indexes": [],
+      "source": "schema.sql:282"
+    },
+    "wp_shares": {
+      "name": "wp_shares",
+      "module": "planner",
+      "storageTier": "tier1_d1",
+      "description": "Workstreams shared with a member (they see, add and edit its tasks).",
+      "columns": [
+        {
+          "name": "workstream_id",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "email",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        }
+      ],
+      "primaryKey": [
+        "workstream_id",
+        "email"
+      ],
+      "indexes": [],
+      "source": "schema.sql:292"
+    },
+    "wp_tasks": {
+      "name": "wp_tasks",
+      "module": "planner",
+      "storageTier": "tier1_d1",
+      "description": "Planner tasks. Dates YYYY-MM-DD; complete tasks are deleted 30 days after completed_at.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "project",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "''",
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "category",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "''",
+          "primaryKey": false,
+          "unique": false,
+          "description": "existing DBs: run once  ALTER TABLE wp_tasks ADD COLUMN category TEXT NOT NULL DEFAULT '';"
+        },
+        {
+          "name": "workstream_id",
+          "type": "INTEGER",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": "wp_workstreams.id. Existing DBs: ALTER TABLE wp_tasks ADD COLUMN workstream_id INTEGER;"
+        },
+        {
+          "name": "completed_at",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": "set when status becomes complete; task is deleted 30 days later. Existing DBs: ALTER TABLE wp_tasks ADD COLUMN completed_at TEXT;"
+        },
+        {
+          "name": "task",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "depends_on",
+          "type": "INTEGER",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "depends_note",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "''",
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "start_date",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "due_date",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'not_started'",
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "updated_by",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "indexes": [],
+      "source": "schema.sql:243"
+    },
+    "wp_workstreams": {
+      "name": "wp_workstreams",
+      "module": "planner",
+      "storageTier": "tier1_d1",
+      "description": "Planner workstreams (sub-tabs / channels). Edited in the Planner Admin tab.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        },
+        {
+          "name": "sort",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": "0",
+          "primaryKey": false,
+          "unique": false,
+          "description": ""
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "indexes": [],
+      "source": "schema.sql:265"
+    }
+  },
+  "foreignKeys": [
+    {
+      "from": "app_access.app_id",
+      "to": "apps.id",
+      "cardinality": "N:1",
+      "enforced": false,
+      "note": ""
+    },
+    {
+      "from": "app_access.email",
+      "to": "users.email",
+      "cardinality": "N:1",
+      "enforced": false,
+      "note": ""
+    },
+    {
+      "from": "app_folders.app_id",
+      "to": "apps.id",
+      "cardinality": "1:1",
+      "enforced": false,
+      "note": ""
+    },
+    {
+      "from": "app_tabs.app_id",
+      "to": "apps.id",
+      "cardinality": "N:1",
+      "enforced": false,
+      "note": ""
+    },
+    {
+      "from": "audit.actor",
+      "to": "users.email",
+      "cardinality": "N:1",
+      "enforced": false,
+      "note": "any email; not checked"
+    },
+    {
+      "from": "role_tabs.app_id",
+      "to": "apps.id",
+      "cardinality": "N:1",
+      "enforced": false,
+      "note": ""
+    },
+    {
+      "from": "role_tabs.tab",
+      "to": "app_tabs.tab",
+      "cardinality": "N:1",
+      "enforced": false,
+      "note": "together with app_id"
+    },
+    {
+      "from": "settings.updated_by",
+      "to": "users.email",
+      "cardinality": "N:1",
+      "enforced": false,
+      "note": ""
+    },
+    {
+      "from": "user_tabs.app_id",
+      "to": "apps.id",
+      "cardinality": "N:1",
+      "enforced": false,
+      "note": ""
+    },
+    {
+      "from": "user_tabs.email",
+      "to": "users.email",
+      "cardinality": "N:1",
+      "enforced": false,
+      "note": ""
+    },
+    {
+      "from": "user_tabs.tab",
+      "to": "app_tabs.tab",
+      "cardinality": "N:1",
+      "enforced": false,
+      "note": "together with app_id"
+    },
+    {
+      "from": "wp_names.email",
+      "to": "users.email",
+      "cardinality": "1:1",
+      "enforced": false,
+      "note": ""
+    },
+    {
+      "from": "wp_shares.email",
+      "to": "users.email",
+      "cardinality": "N:1",
+      "enforced": false,
+      "note": ""
+    },
+    {
+      "from": "wp_shares.workstream_id",
+      "to": "wp_workstreams.id",
+      "cardinality": "N:1",
+      "enforced": false,
+      "note": ""
+    },
+    {
+      "from": "wp_tasks.depends_on",
+      "to": "wp_tasks.id",
+      "cardinality": "N:1",
+      "enforced": false,
+      "note": "the task this one waits for"
+    },
+    {
+      "from": "wp_tasks.updated_by",
+      "to": "users.email",
+      "cardinality": "N:1",
+      "enforced": false,
+      "note": ""
+    },
+    {
+      "from": "wp_tasks.workstream_id",
+      "to": "wp_workstreams.id",
+      "cardinality": "N:1",
+      "enforced": false,
+      "note": ""
+    }
+  ]
+}

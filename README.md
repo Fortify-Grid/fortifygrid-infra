@@ -42,3 +42,6 @@ A push to `main` deploys: `.github/workflows/deploy.yml` applies `schema.sql`, t
 | Admin (users, apps, roles, tabs) | `public/dashboard/admin/index.html` |
 | Worker (routing, auth, `/api/`, app gates e.g. `/ide/`) | `worker.js`; tables `schema.sql` |
 | Cloudflare setup script | `infra/cf-setup.mjs` |
+| Shared UI kit for every app (served at `/platform/v1/`, demo page) | `public/platform/v1/fg-ui.css`, `fg-ui.js`, `demo.html`; rules `platform/UI_PRINCIPLES.md` |
+| Shared platform rules (what apps share, docs annotations, storage tiers) | `platform/README.md` |
+| API / schema docs of this repo (generated, do not edit) | `docs/portal/`; `npm run docs`; generator `platform/tools/generate-docs.mjs`, config `docs.config.json` |

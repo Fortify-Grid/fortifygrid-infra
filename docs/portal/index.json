@@ -1,0 +1,104 @@
+{
+  "app": "portal",
+  "name": "FortifyGrid portal (website, sign-in, admin, Planner)",
+  "repo": "Fortify-Grid/fortifygrid-infra",
+  "sources": {
+    "api": [
+      "worker.js"
+    ],
+    "schema": [
+      "schema.sql"
+    ]
+  },
+  "counts": {
+    "modules": 6,
+    "routes": 29,
+    "rpc": 4,
+    "tables": 13,
+    "foreignKeys": 17
+  },
+  "modules": [
+    {
+      "id": "access",
+      "label": "Login and permissions for every app: users, roles, apps, tabs, Access groups, audit",
+      "ui": [
+        "public/dashboard/admin/index.html"
+      ],
+      "routes": 8,
+      "tables": [
+        "app_access",
+        "app_tabs",
+        "apps",
+        "audit",
+        "role_tabs",
+        "user_tabs",
+        "users"
+      ]
+    },
+    {
+      "id": "directory",
+      "label": "Directory RPC: app Workers ask the portal for login config, role, tabs, users",
+      "ui": [],
+      "routes": 4,
+      "tables": []
+    },
+    {
+      "id": "planner",
+      "label": "Planner (workplan): tasks, workstreams, people, sharing",
+      "ui": [
+        "public/dashboard/workplan/index.html"
+      ],
+      "routes": 13,
+      "tables": [
+        "wp_names",
+        "wp_shares",
+        "wp_tasks",
+        "wp_workstreams"
+      ]
+    },
+    {
+      "id": "platform",
+      "label": "Shared UI kit and docs tooling used by every app",
+      "ui": [
+        "public/platform/v1/fg-ui.css",
+        "public/platform/v1/fg-ui.js",
+        "public/platform/v1/demo.html"
+      ],
+      "routes": 1,
+      "tables": []
+    },
+    {
+      "id": "portal",
+      "label": "Signed-in dashboard: app tiles, folders, notice, page gates",
+      "ui": [
+        "public/dashboard/index.html",
+        "public/dashboard/portal.js",
+        "public/dashboard/portal.css"
+      ],
+      "routes": 6,
+      "tables": [
+        "app_folders",
+        "settings"
+      ]
+    },
+    {
+      "id": "site",
+      "label": "Public website fortifygrid.com",
+      "ui": [
+        "public/index.html",
+        "public/site.css",
+        "public/script.js"
+      ],
+      "routes": 1,
+      "tables": []
+    }
+  ],
+  "files": [
+    "index.json",
+    "api-reference.json",
+    "api-reference.md",
+    "relationships.json",
+    "schema-erd.md",
+    "architecture.md"
+  ]
+}

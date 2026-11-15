@@ -401,6 +401,55 @@ const WP_STATUS = ['not_started', 'in_progress', 'blocked', 'complete'];
 const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const wpDate = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : null);
 
+/**
+ * Planner: who am I here (role, tabs, Planner name, people names for the Depends-on picker).
+ * @module planner
+ * @route GET /api/workplan/me Planner role (member or admin)
+ * @storageTier tier1_d1
+ * @returns {{email, role, tabs: string[], admin: boolean, name, people: string[]}}
+ * @throws 403 no Planner role
+ */
+/**
+ * Planner tasks. Members see tasks of workstreams shared with them plus tasks whose Depends-on note names them;
+ * Planner admins see all. Listing also deletes tasks completed more than 30 days ago.
+ * @module planner
+ * @route GET /api/workplan/tasks
+ * @route POST /api/workplan/tasks
+ * @route POST /api/workplan/tasks/:id
+ * @route DELETE /api/workplan/tasks/:id
+ * @route POST /api/workplan/tasks/bulk
+ * @permission Planner tab workplan; only tasks the caller can see
+ * @storageTier tier1_d1
+ * @param {object} body POST: {project, category, task, workstream_id, depends_on, depends_note, start_date, due_date, status}; bulk: {ids[] ≤500, changes: {project, category, status, start_date, due_date, workstream_id}}
+ * @returns {object[]|{ok: true}} tasks (GET), else ok
+ * @throws 400 bad dates / nothing to change · 403 workstream not shared · 404 task not visible
+ * @example POST /api/workplan/tasks/bulk {"ids":[3,4],"changes":{"status":"complete"}}
+ */
+/**
+ * Planner workstreams (sub-tabs / channels): list, add, rename, reorder, delete (only when empty).
+ * @module planner
+ * @route GET /api/workplan/workstreams Planner tab workplan (members: shared ones + ones holding a task naming them)
+ * @route POST /api/workplan/workstreams
+ * @route POST /api/workplan/workstreams/:id
+ * @route POST /api/workplan/workstreams/order
+ * @route DELETE /api/workplan/workstreams/:id
+ * @permission Planner tab admin
+ * @storageTier tier1_d1
+ * @param {object} body {name} or order: {ids[]}
+ * @returns {object[]|{ok: true}} [{id, name, sort, edit}] for GET
+ * @throws 400 duplicate name / workstream still has tasks / last workstream
+ */
+/**
+ * Planner people and permissions: Planner name, shared workstreams and extra tabs per user.
+ * @module planner
+ * @route GET /api/workplan/access
+ * @route POST /api/workplan/access
+ * @permission Planner tab admin
+ * @storageTier tier1_d1
+ * @param {object} body {email, name, tabs[], ws[]}
+ * @returns {object[]|{ok: true}} [{email, name, role, tabs, pname, ws}] for GET
+ * @throws 404 no such active user · 400 name taken
+ */
 async function workplanApi(req, env, user, path, method) {
   const tabs = await appTabs(env, user, WP);
   const need = (t) => { if (!tabs.includes(t)) throw new HttpError(403, 'You do not have this tab. Ask a Planner admin.'); };
@@ -582,6 +631,71 @@ async function workplanApi(req, env, user, path, method) {
 
 /* ---------- Router ---------- */
 
+/**
+ * The signed-in user and the app tiles they may open (dashboard). Every portal API call verifies the Access JWT;
+ * writes must be same-origin JSON.
+ * @module portal
+ * @route GET /api/me signed-in user
+ * @storageTier tier1_d1
+ * @returns {{email, name, admin: boolean, apps: {id, name, description, url, folder, folder_sort, role}[], notice}}
+ * @throws 401 not signed in · 403 not an active user
+ */
+/**
+ * Admin overview: users, apps, settings, tabs, Access sync and login methods.
+ * @module access
+ * @route GET /api/admin/overview portal admin
+ * @storageTier tier1_d1 external
+ * @returns {{users, apps, settings, tabs, access_sync, email_invites, team_domain, logins}}
+ * @throws 403 Admins only
+ */
+/**
+ * Users: add or change (portal admin flag, active, role per app), delete, send invite. Saving rewrites the
+ * Cloudflare Access group emails (portal + per app).
+ * @module access
+ * @route POST /api/admin/users
+ * @route DELETE /api/admin/users/:email
+ * @route POST /api/admin/users/:email/invite
+ * @permission portal admin
+ * @storageTier tier1_d1 external
+ * @param {object} body {email, name, is_admin, active, apps: {appId: role}}
+ * @returns {object} saved user + Access sync note / invite result
+ * @throws 400 bad email / removing your own admin · 404 no such user
+ */
+/**
+ * Apps: register or change an app (id, name, https URL, roles lowest first, folder); set its tabs and which role sees each.
+ * @module access
+ * @route POST /api/admin/apps
+ * @route POST /api/admin/apps/:id/tabs
+ * @permission portal admin
+ * @storageTier tier1_d1 external
+ * @param {object} body app: {id, name, description, url, roles, enabled, sort, folder}; tabs: {tabs: [{tab, label}], roles: {role: tab[]}}
+ * @returns {object} saved app / tabs
+ * @throws 400 bad id, URL or roles · 404 no such app
+ */
+/**
+ * Site settings (e.g. dashboard_notice).
+ * @module portal
+ * @route POST /api/admin/settings
+ * @route DELETE /api/admin/settings/:key
+ * @permission portal admin
+ * @storageTier tier1_d1
+ * @param {object} body {key, value ≤4000 chars}
+ * @returns {{ok: true}}
+ */
+/**
+ * Rewrite every Cloudflare Access group from the user list.
+ * @module access
+ * @route POST /api/admin/sync portal admin
+ * @storageTier external
+ * @returns {{ok, note}}
+ */
+/**
+ * Audit log, newest 300.
+ * @module access
+ * @route GET /api/admin/audit portal admin
+ * @storageTier tier1_d1
+ * @returns {object[]} [{id, at, actor, action, target, detail}]
+ */
 async function api(req, env, url) {
   const user = await currentUser(req, env);
   const path = url.pathname.replace(/^\/(dashboard\/)?api\//, '').replace(/\/+$/, '');
@@ -650,6 +764,17 @@ async function api(req, env, url) {
 
 /* ---------- Directory RPC for app Workers (service binding only, not reachable from the internet) ---------- */
 
+/**
+ * Directory: what app Workers ask the portal over the service binding (never reachable from the internet).
+ * config → {team_domain, aud} to verify Access logins; access → role or null; tabs → tab ids; users → who may open the app.
+ * @module directory
+ * @rpc Directory.config(appId)
+ * @rpc Directory.access(email, appId)
+ * @rpc Directory.tabs(email, appId)
+ * @rpc Directory.users(appId)
+ * @permission service binding (app Workers only)
+ * @storageTier tier1_d1
+ */
 export class Directory extends WorkerEntrypoint {
   // What an app needs to verify Access logins itself: { team_domain, aud } or null if the app is unknown/disabled.
   async config(appId) {
@@ -685,9 +810,37 @@ export class Directory extends WorkerEntrypoint {
   }
 }
 
+/**
+ * Shared UI kit for every app (public/platform/v<n>/: fg-ui.css, fg-ui.js, demo.html). Public on both hosts, so
+ * subdomain apps load it without a portal sign-in; CORS open (static, no data). Rules: platform/UI_PRINCIPLES.md.
+ * @module platform
+ * @route GET /platform/:version/:file
+ * @permission public
+ * @storageTier static_assets
+ * @returns {Response} the file, `access-control-allow-origin: *`, cached 5 minutes
+ */
+async function platformFile(req, env) {
+  const res = await env.ASSETS.fetch(req);
+  const out = new Response(res.body, res);
+  out.headers.set('access-control-allow-origin', '*');
+  if (res.ok) out.headers.set('cache-control', 'public, max-age=300');
+  return out;
+}
+
+/**
+ * Portal pages and app gates on app.fortifygrid.com: pages need a signed-in user; /ide/ needs an IDE role (and the
+ * downloads tab for /ide/files/) and is forwarded to the fortifygrid-ide Worker; /workplan/ needs a Planner role.
+ * @module portal
+ * @route GET /* signed-in user (Cloudflare Access)
+ * @route GET /ide/* IDE role; /ide/files/* also tab downloads
+ * @route GET /workplan/* Planner role
+ * @storageTier static_assets
+ * @throws 403 no role for that app
+ */
 // app.fortifygrid.com/<path> is served from ./public/dashboard/<path>; /api/* is the portal API; /assets/* is shared.
 async function portalHost(req, env, url) {
   if (url.pathname.startsWith('/api/')) return apiResponse(req, env, url);
+  if (url.pathname.startsWith('/platform/')) return platformFile(req, env);
   if (url.pathname === '/dashboard' || url.pathname.startsWith('/dashboard/')) {
     url.pathname = url.pathname.slice('/dashboard'.length) || '/';
     return Response.redirect(url.toString(), 301);
@@ -739,6 +892,12 @@ async function apiResponse(req, env, url) {
   }
 }
 
+/**
+ * Public website fortifygrid.com (public/): no sign-in. www → apex; old /dashboard links → app.fortifygrid.com.
+ * @module site
+ * @route GET / public
+ * @storageTier static_assets
+ */
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
@@ -754,6 +913,7 @@ export default {
       to.search = url.search;
       return Response.redirect(to.toString(), 301);
     }
+    if (url.pathname.startsWith('/platform/')) return platformFile(req, env);
     return env.ASSETS.fetch(req);
   },
 };

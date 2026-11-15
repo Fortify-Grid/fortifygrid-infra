@@ -1,4 +1,9 @@
 -- fortifygrid-portal D1. Idempotent: runs on every deploy. Changes to existing tables → migrations/ first.
+-- Doc tags (-- @table … above each CREATE TABLE) feed `npm run docs`; rules in platform/README.md (Docs).
+-- @table users
+-- @module access
+-- @storageTier tier1_d1
+-- @description Every person who can sign in to the portal; is_admin = portal admin. Roles per app are in app_access.
 CREATE TABLE IF NOT EXISTS users (
   email        TEXT PRIMARY KEY,
   name         TEXT NOT NULL DEFAULT '',
@@ -10,6 +15,12 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- One row per user per app they may open. role is one of that app's roles in worker.js APPS.
+-- @table app_access
+-- @module access
+-- @storageTier tier1_d1
+-- @description Which apps each user may open, and their role there (one of the app's roles in apps.roles).
+-- @foreignKey email users.email (N:1)
+-- @foreignKey app_id apps.id (N:1)
 CREATE TABLE IF NOT EXISTS app_access (
   email  TEXT NOT NULL,
   app_id TEXT NOT NULL,
@@ -17,6 +28,11 @@ CREATE TABLE IF NOT EXISTS app_access (
   PRIMARY KEY (email, app_id)
 );
 
+-- @table audit
+-- @module access
+-- @storageTier tier1_d1
+-- @description Who changed what in admin (users, apps, tabs, settings, invites, sync). Append-only; newest 300 shown.
+-- @foreignKey actor users.email (N:1) any email; not checked
 CREATE TABLE IF NOT EXISTS audit (
   id     INTEGER PRIMARY KEY AUTOINCREMENT,
   at     TEXT NOT NULL,
@@ -29,6 +45,10 @@ CREATE INDEX IF NOT EXISTS audit_at ON audit (at);
 
 -- Registered apps (edited at /dashboard/admin → Apps). roles = JSON array, lowest first.
 -- access_group_id / access_aud = the app's Cloudflare Access group and Access app audience (set by "Create Access").
+-- @table apps
+-- @module access
+-- @storageTier tier1_d1
+-- @description Registered apps: URL, roles (JSON, lowest first), Cloudflare Access group and audience.
 CREATE TABLE IF NOT EXISTS apps (
   id              TEXT PRIMARY KEY,
   name            TEXT NOT NULL,
@@ -47,6 +67,11 @@ INSERT OR IGNORE INTO apps (id, name, description, url, roles, created_at, updat
    'https://heatmap.fortifygrid.com/', '["viewer","admin"]', datetime('now'), datetime('now'));
 
 -- Site config (edited at /dashboard/admin → Settings). Known keys: dashboard_notice (banner on the dashboard).
+-- @table settings
+-- @module portal
+-- @storageTier tier1_d1
+-- @description Site config edited in admin → Settings (e.g. dashboard_notice banner).
+-- @foreignKey updated_by users.email (N:1)
 CREATE TABLE IF NOT EXISTS settings (
   key        TEXT PRIMARY KEY,
   value      TEXT NOT NULL,
@@ -55,6 +80,11 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 
 -- Tabs each app has (its UI marks them data-tab="<tab>") and which role may see which (admin → Apps → Tabs).
+-- @table app_tabs
+-- @module access
+-- @storageTier tier1_d1
+-- @description Tabs each app has; its UI marks them data-tab="<tab>".
+-- @foreignKey app_id apps.id (N:1)
 CREATE TABLE IF NOT EXISTS app_tabs (
   app_id TEXT NOT NULL,
   tab    TEXT NOT NULL,
@@ -62,6 +92,12 @@ CREATE TABLE IF NOT EXISTS app_tabs (
   sort   INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (app_id, tab)
 );
+-- @table role_tabs
+-- @module access
+-- @storageTier tier1_d1
+-- @description Which role may see which tab of an app.
+-- @foreignKey app_id apps.id (N:1)
+-- @foreignKey tab app_tabs.tab (N:1) together with app_id
 CREATE TABLE IF NOT EXISTS role_tabs (
   app_id TEXT NOT NULL,
   role   TEXT NOT NULL,
@@ -130,6 +166,11 @@ INSERT INTO role_tabs (app_id, role, tab)
 
 -- Dashboard folders: which section each app's tile sits in (admin → Apps → Folder). Folders sort by the lowest
 -- folder_sort among their apps; apps without a row show under "Other apps".
+-- @table app_folders
+-- @module portal
+-- @storageTier tier1_d1
+-- @description Dashboard folder (section) each app's tile sits in.
+-- @foreignKey app_id apps.id (1:1)
 CREATE TABLE IF NOT EXISTS app_folders (
   app_id      TEXT PRIMARY KEY,
   folder      TEXT NOT NULL,
@@ -159,6 +200,13 @@ INSERT OR IGNORE INTO app_folders (app_id, folder, folder_sort) VALUES
   ('ide', 'BTM Agentic Tools', 2);
 
 -- Extra tabs for one user on top of their role's tabs (role_tabs). The Workplan Admin tab edits these.
+-- @table user_tabs
+-- @module access
+-- @storageTier tier1_d1
+-- @description Extra tabs for one user on top of their role's tabs (Planner Admin tab edits these).
+-- @foreignKey app_id apps.id (N:1)
+-- @foreignKey email users.email (N:1)
+-- @foreignKey tab app_tabs.tab (N:1) together with app_id
 CREATE TABLE IF NOT EXISTS user_tabs (
   app_id TEXT NOT NULL,
   email  TEXT NOT NULL,
@@ -185,6 +233,13 @@ UPDATE app_tabs SET label = 'Tasks' WHERE app_id = 'workplan' AND tab = 'workpla
 INSERT OR IGNORE INTO app_folders (app_id, folder, folder_sort) VALUES ('workplan', 'Operations', 3);
 
 -- Workplan tasks. Dates are YYYY-MM-DD; the week number (ISO) comes from the dates. depends_on = another task's id.
+-- @table wp_tasks
+-- @module planner
+-- @storageTier tier1_d1
+-- @description Planner tasks. Dates YYYY-MM-DD; complete tasks are deleted 30 days after completed_at.
+-- @foreignKey workstream_id wp_workstreams.id (N:1)
+-- @foreignKey depends_on wp_tasks.id (N:1) the task this one waits for
+-- @foreignKey updated_by users.email (N:1)
 CREATE TABLE IF NOT EXISTS wp_tasks (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   project      TEXT NOT NULL DEFAULT '',
@@ -203,6 +258,10 @@ CREATE TABLE IF NOT EXISTS wp_tasks (
 );
 
 -- Workplan workstreams = sub-tabs of the Workplan tab. Edited in the Workplan Admin tab. Seeded once; tasks without one go to the first.
+-- @table wp_workstreams
+-- @module planner
+-- @storageTier tier1_d1
+-- @description Planner workstreams (sub-tabs / channels). Edited in the Planner Admin tab.
 CREATE TABLE IF NOT EXISTS wp_workstreams (
   id   INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
@@ -215,10 +274,21 @@ UPDATE wp_tasks SET workstream_id = (SELECT id FROM wp_workstreams ORDER BY sort
 
 -- Planner people. name = what the owner types in a task's "Depends on" note (e.g. Sandeep): tasks naming them show in
 -- their view. wp_shares = whole workstreams shared with a member (they see, add and edit its tasks). Planner admins see all.
+-- @table wp_names
+-- @module planner
+-- @storageTier tier1_d1
+-- @description Planner name per person; tasks whose Depends-on note names them show in their view.
+-- @foreignKey email users.email (1:1)
 CREATE TABLE IF NOT EXISTS wp_names (
   email TEXT PRIMARY KEY,
   name  TEXT NOT NULL
 );
+-- @table wp_shares
+-- @module planner
+-- @storageTier tier1_d1
+-- @description Workstreams shared with a member (they see, add and edit its tasks).
+-- @foreignKey workstream_id wp_workstreams.id (N:1)
+-- @foreignKey email users.email (N:1)
 CREATE TABLE IF NOT EXISTS wp_shares (
   workstream_id INTEGER NOT NULL,
   email         TEXT NOT NULL,

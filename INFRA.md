@@ -34,6 +34,13 @@ The portal Worker is still named `fortifygrid-website` (repo `fortifygrid-infra`
 
 Subdomain apps move to the portal path when they are next touched.
 
+## Shared platform (UI, docs, storage rules)
+Master in fortifygrid-infra `platform/README.md`. Every app:
+- **UI:** loads `https://fortifygrid.com/platform/v1/fg-ui.css` + `fg-ui.js` and follows `platform/UI_PRINCIPLES.md`
+  (same shell, Apps menu, tabs, tables, filters, folding cards). Demo: https://fortifygrid.com/platform/v1/demo.html
+- **Docs:** `npm run docs` writes `docs/<app>/` (API, schema, ER diagram, module map) from code comments; `npm run check` fails when stale.
+- **Storage:** D1 for small hot state, Git for versioned text, Drive/Dropbox for heavy files, AWS for big tables. Stream and page; no heavy SDKs in Workers.
+
 ## Repos and working folders
 | Repo `Fortify-Grid/…` | Working folder (Google Drive) |
 |---|---|
