@@ -444,7 +444,7 @@
         "tab"
       ],
       "indexes": [],
-      "source": "schema.sql:211"
+      "source": "schema.sql:230"
     },
     "users": {
       "name": "users",
@@ -551,7 +551,7 @@
         "email"
       ],
       "indexes": [],
-      "source": "schema.sql:283"
+      "source": "schema.sql:302"
     },
     "wp_shares": {
       "name": "wp_shares",
@@ -583,7 +583,7 @@
         "email"
       ],
       "indexes": [],
-      "source": "schema.sql:293"
+      "source": "schema.sql:312"
     },
     "wp_tasks": {
       "name": "wp_tasks",
@@ -722,7 +722,7 @@
         "id"
       ],
       "indexes": [],
-      "source": "schema.sql:244"
+      "source": "schema.sql:263"
     },
     "wp_workstreams": {
       "name": "wp_workstreams",
@@ -762,7 +762,7 @@
         "id"
       ],
       "indexes": [],
-      "source": "schema.sql:266"
+      "source": "schema.sql:285"
     }
   },
   "foreignKeys": [

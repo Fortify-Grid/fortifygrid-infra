@@ -20,6 +20,7 @@ Updated 2026-11-15.
 | IDE at **app.fortifygrid.com/ide/**: the portal checks the role and forwards to the `fortifygrid-ide` Worker (no public route) | 2026-10-25 |
 
 ## Open
+- New app **FGAI QuickBooks** at app.fortifygrid.com/quickbooks/: gate in `portalHost` (quickbooks role), service binding `QUICKBOOKS` → Worker `fgai-quickbooks`, app + 7 tabs + role_tabs (viewer / editor / admin, all tabs) in `schema.sql`, folder Finance. Worker deployed first.
 - Shared platform rollout, one PR per app: portal tiles + admin + Planner done (branch `portal-on-kit`); next FGAI-RAG, Revenue, IDE (load the kit, annotate, own `docs/<app>/`); copy the new INFRA.md section to every repo. Then the admin-only docs browser (admin + `code_docs` tab) reading every app's `docs/<app>/`.
 - Planner: build System Pricing and Accounts tabs (data from RDS via Hyperdrive when needed).
 - Contact form doesn't send.

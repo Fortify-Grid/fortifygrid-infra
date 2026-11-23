@@ -923,6 +923,7 @@ async function platformFile(req, env) {
  * @module portal
  * @route GET /* signed-in user (Cloudflare Access)
  * @route GET /ide/* IDE role; /ide/files/* also tab downloads
+ * @route GET /quickbooks/* QuickBooks role
  * @route GET /workplan/* Planner role
  * @storageTier static_assets
  * @throws 403 no role for that app
@@ -946,6 +947,15 @@ async function portalHost(req, env, url) {
       return json({ message: e.message }, e.status || 500);
     }
     return env.IDE.fetch(req); // fortifygrid-ide Worker (repo Fortify-Grid/fortifygrid-ide), no public route
+  }
+  // /quickbooks/ (FGAI QuickBooks) needs a quickbooks role. The app re-checks the JWT and reads role + tabs via Directory.
+  if (/^\/quickbooks(\/|$)/.test(url.pathname)) {
+    try {
+      if (!(await currentUser(req, env)).apps.quickbooks) throw new HttpError(403, 'No QuickBooks access. Ask a FortifyGrid admin.');
+    } catch (e) {
+      return json({ message: e.message }, e.status || 500);
+    }
+    return env.QUICKBOOKS.fetch(req); // fgai-quickbooks Worker (repo Fortify-Grid/FGAI-Quickbooks), no public route
   }
   // /workplan/ needs a workplan role; the page itself is static (public/dashboard/workplan/), its API checks tabs.
   if (/^\/workplan(\/|$)/.test(url.pathname)) {

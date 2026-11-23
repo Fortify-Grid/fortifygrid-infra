@@ -615,6 +615,23 @@
     },
     {
       "module": "portal",
+      "permission": "QuickBooks role",
+      "storageTier": "static_assets",
+      "description": "Portal pages and app gates on app.fortifygrid.com: pages need a signed-in user; /ide/ needs an IDE role (and the downloads tab for /ide/files/) and is forwarded to the fortifygrid-ide Worker; /workplan/ needs a Planner role.",
+      "params": [],
+      "returns": "",
+      "throws": [
+        "403 no role for that app"
+      ],
+      "examples": [],
+      "handler": "portalHost",
+      "kind": "http",
+      "method": "GET",
+      "path": "/quickbooks/*",
+      "source": "worker.js:920"
+    },
+    {
+      "module": "portal",
       "permission": "Planner role",
       "storageTier": "static_assets",
       "description": "Portal pages and app gates on app.fortifygrid.com: pages need a signed-in user; /ide/ needs an IDE role (and the downloads tab for /ide/files/) and is forwarded to the fortifygrid-ide Worker; /workplan/ needs a Planner role.",
@@ -643,7 +660,7 @@
       "kind": "http",
       "method": "GET",
       "path": "/",
-      "source": "worker.js:985"
+      "source": "worker.js:995"
     }
   ]
 }

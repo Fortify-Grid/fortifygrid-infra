@@ -12,7 +12,7 @@
   },
   "counts": {
     "modules": 6,
-    "routes": 32,
+    "routes": 33,
     "rpc": 4,
     "tables": 13,
     "foreignKeys": 17
@@ -75,7 +75,7 @@
         "public/dashboard/portal.js",
         "public/dashboard/portal.css"
       ],
-      "routes": 7,
+      "routes": 8,
       "tables": [
         "app_folders",
         "settings"

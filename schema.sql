@@ -194,11 +194,30 @@ INSERT INTO role_tabs (app_id, role, tab)
   SELECT 'ide', r.role, 'downloads' FROM (SELECT 'engineer' AS role UNION ALL SELECT 'admin') r
   WHERE NOT EXISTS (SELECT 1 FROM role_tabs x WHERE x.app_id = 'ide' AND x.role = r.role);
 
+-- FGAI QuickBooks: app.fortifygrid.com/quickbooks/, role-checked in worker.js, served by the fgai-quickbooks Worker
+-- (binding QUICKBOOKS, repo Fortify-Grid/FGAI-Quickbooks). viewer reads; editor reclassifies / runs AI reads; admin also moves files.
+INSERT OR IGNORE INTO apps (id, name, description, url, roles, sort, created_at, updated_at) VALUES
+  ('quickbooks', 'FGAI QuickBooks', 'Live P&L, balance sheet, GL and monthly spend from the QuickBooks GL, vendor receipts and the latest statements.',
+   'https://app.fortifygrid.com/quickbooks/', '["viewer","editor","admin"]', 6, datetime('now'), datetime('now'));
+INSERT OR IGNORE INTO app_tabs (app_id, tab, label, sort) VALUES
+  ('quickbooks', 'pnl', 'P&L', 1),
+  ('quickbooks', 'bs', 'Balance Sheet', 2),
+  ('quickbooks', 'gl', 'General Ledger', 3),
+  ('quickbooks', 'spend', 'Monthly Spend', 4),
+  ('quickbooks', 'recon', 'Statement Reconciliation', 5),
+  ('quickbooks', 'scoa', 'SCOA', 6),
+  ('quickbooks', 'receipts', 'Receipts', 7);
+INSERT INTO role_tabs (app_id, role, tab)
+  SELECT 'quickbooks', r.role, t.tab FROM (SELECT 'viewer' AS role UNION ALL SELECT 'editor' UNION ALL SELECT 'admin') r
+  JOIN app_tabs t ON t.app_id = 'quickbooks'
+  WHERE NOT EXISTS (SELECT 1 FROM role_tabs x WHERE x.app_id = 'quickbooks' AND x.role = r.role);
+
 INSERT OR IGNORE INTO app_folders (app_id, folder, folder_sort) VALUES
   ('heatmap', 'Market Data', 1),
   ('query', 'Market Data', 1),
   ('revenue', 'BTM Agentic Tools', 2),
-  ('ide', 'BTM Agentic Tools', 2);
+  ('ide', 'BTM Agentic Tools', 2),
+  ('quickbooks', 'Finance', 3);
 
 -- Extra tabs for one user on top of their role's tabs (role_tabs). The Workplan Admin tab edits these.
 -- @table user_tabs
