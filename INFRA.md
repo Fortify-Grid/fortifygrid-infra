@@ -24,6 +24,7 @@ The portal Worker is still named `fortifygrid-website` (repo `fortifygrid-infra`
 | fortifygrid.com | fortifygrid-infra | Public site (`public/`) |
 | app.fortifygrid.com | fortifygrid-infra | Portal: tiles, admin (`/admin/`), API (`/api/`). Files in `public/dashboard/`, served at the host root |
 | app.fortifygrid.com/ide/ | fortifygrid-ide | IDE / BIM viewer. The portal checks the role, then forwards to the `fortifygrid-ide` Worker (service binding `IDE`, no public route) |
+| app.fortifygrid.com/quickbooks/ | FGAI-Quickbooks | Books (P&L, BS, GL, spend). Portal checks the role, forwards to `fgai-quickbooks` (binding `QUICKBOOKS`, no public route). Next.js on OpenNext, keeps the `/quickbooks` prefix (basePath) |
 | heatmap / query.fortifygrid.com | FGAI-RAG | `apps/heatmap/`, `apps/query/`. Own Workers |
 | rev-anal.fortifygrid.com | revenue-analysis-module | Revenue Analysis. Own Worker |
 
@@ -49,6 +50,7 @@ Master in fortifygrid-infra `platform/README.md`. Every app:
 | FGAI-RAG | `Shared drives/4. Fortify AI LLC/11. AI Code/FG4. FGAI-RAG` |
 | revenue-analysis-module | `Shared drives/4. Fortify AI LLC/11. AI Code/FG3. revenue-analysis-module` |
 | FGDataETL | `~/FortifyAI/FGDataETL` (ETL into RDS, not Cloudflare) |
+| FGAI-Quickbooks | `~/AI-Code/accounts-software` |
 
 Drive and Dropbox are for editing only. Git is what deploys. Rules:
 - Code folders in Drive are named `FG<n>. <repo name>` and hold only that repo. Non-code files go elsewhere (project files in `3. FortifyGrid LLC`).

@@ -209,7 +209,7 @@ Module **portal** · Tier 1 · D1 (hot app state, roles, small tables) · key (k
 ## user_tabs
 
 Extra tabs for one user on top of their role's tabs (Planner Admin tab edits these).  
-Module **access** · Tier 1 · D1 (hot app state, roles, small tables) · key (app_id, email, tab) · `schema.sql:211`
+Module **access** · Tier 1 · D1 (hot app state, roles, small tables) · key (app_id, email, tab) · `schema.sql:230`
 
 | Column | Type | Null | Default | Notes |
 |---|---|---|---|---|
@@ -235,7 +235,7 @@ Module **access** · Tier 1 · D1 (hot app state, roles, small tables) · key (e
 ## wp_names
 
 Planner name per person; tasks whose Depends-on note names them show in their view.  
-Module **planner** · Tier 1 · D1 (hot app state, roles, small tables) · key (email) · `schema.sql:283`
+Module **planner** · Tier 1 · D1 (hot app state, roles, small tables) · key (email) · `schema.sql:302`
 
 | Column | Type | Null | Default | Notes |
 |---|---|---|---|---|
@@ -245,7 +245,7 @@ Module **planner** · Tier 1 · D1 (hot app state, roles, small tables) · key (
 ## wp_shares
 
 Workstreams shared with a member (they see, add and edit its tasks).  
-Module **planner** · Tier 1 · D1 (hot app state, roles, small tables) · key (workstream_id, email) · `schema.sql:293`
+Module **planner** · Tier 1 · D1 (hot app state, roles, small tables) · key (workstream_id, email) · `schema.sql:312`
 
 | Column | Type | Null | Default | Notes |
 |---|---|---|---|---|
@@ -255,7 +255,7 @@ Module **planner** · Tier 1 · D1 (hot app state, roles, small tables) · key (
 ## wp_tasks
 
 Planner tasks. Dates YYYY-MM-DD; complete tasks are deleted 30 days after completed_at.  
-Module **planner** · Tier 1 · D1 (hot app state, roles, small tables) · key (id) · `schema.sql:244`
+Module **planner** · Tier 1 · D1 (hot app state, roles, small tables) · key (id) · `schema.sql:263`
 
 | Column | Type | Null | Default | Notes |
 |---|---|---|---|---|
@@ -277,7 +277,7 @@ Module **planner** · Tier 1 · D1 (hot app state, roles, small tables) · key (
 ## wp_workstreams
 
 Planner workstreams (sub-tabs / channels). Edited in the Planner Admin tab.  
-Module **planner** · Tier 1 · D1 (hot app state, roles, small tables) · key (id) · `schema.sql:266`
+Module **planner** · Tier 1 · D1 (hot app state, roles, small tables) · key (id) · `schema.sql:285`
 
 | Column | Type | Null | Default | Notes |
 |---|---|---|---|---|
